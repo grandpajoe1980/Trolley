@@ -1,0 +1,508 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/trolley/levels.schema.json",
+  "title": "Trolley authored catalog v1",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "catalogVersion": {
+      "const": "1.0.0"
+    },
+    "title": {
+      "const": "Trolley"
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minProperties": 1
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "firstLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "lastLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "firstLevel",
+          "lastLevel"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 10,
+      "maxItems": 10
+    },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "deathWeightsTenths": {
+          "type": "object",
+          "properties": {
+            "humans": {
+              "const": 10
+            },
+            "cockroaches": {
+              "const": 1
+            },
+            "butterflies": {
+              "const": 2
+            }
+          },
+          "required": [
+            "humans",
+            "cockroaches",
+            "butterflies"
+          ],
+          "additionalProperties": false
+        },
+        "scoreRule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defaultDecisionMs": {
+          "const": 30000
+        },
+        "replay": {
+          "const": "practice-does-not-change-totals"
+        },
+        "scoreDisclaimer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weightDisclaimer": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "deathWeightsTenths",
+        "scoreRule",
+        "defaultDecisionMs",
+        "replay",
+        "scoreDisclaimer",
+        "weightDisclaimer"
+      ],
+      "additionalProperties": false
+    },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "chapter": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "philosophicalDistinction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "premise": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provenance": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "original",
+                  "canonical-adaptation"
+                ]
+              },
+              "sourceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "kind",
+              "sourceIds",
+              "note"
+            ],
+            "additionalProperties": false
+          },
+          "layout": {
+            "type": "object",
+            "properties": {
+              "template": {
+                "enum": [
+                  "fork2",
+                  "fork3",
+                  "action2",
+                  "action3",
+                  "footbridge",
+                  "loop"
+                ]
+              },
+              "theme": {
+                "enum": [
+                  "railway-theatre",
+                  "bureaucratic-comedy"
+                ]
+              },
+              "sceneCaption": {
+                "type": "string",
+                "minLength": 1
+              },
+              "routeLabels": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 2,
+                "maxItems": 3
+              },
+              "fogOverlay": {
+                "type": "boolean"
+              },
+              "actionTarget": {
+                "enum": [
+                  "bridge-person",
+                  "trapdoor-control",
+                  "control-console",
+                  "rail-switch"
+                ]
+              },
+              "renderMode": {
+                "const": "schematic-with-fact-plaques"
+              }
+            },
+            "required": [
+              "template",
+              "theme",
+              "sceneCaption",
+              "routeLabels",
+              "fogOverlay",
+              "actionTarget",
+              "renderMode"
+            ],
+            "additionalProperties": false
+          },
+          "timing": {
+            "type": "object",
+            "properties": {
+              "decisionMs": {
+                "const": 30000
+              },
+              "resolutionMs": {
+                "const": 2400
+              },
+              "commitRule": {
+                "const": "last-selected-at-deadline"
+              },
+              "pauseAllowed": {
+                "const": true
+              }
+            },
+            "required": [
+              "decisionMs",
+              "resolutionMs",
+              "commitRule",
+              "pauseAllowed"
+            ],
+            "additionalProperties": false
+          },
+          "defaultChoiceId": {
+            "const": "A"
+          },
+          "defaultDisclosure": {
+            "type": "string",
+            "minLength": 1
+          },
+          "knowledge": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "enum": [
+                  "epistemic-fixed",
+                  "moral-status-uncertain",
+                  "deterministic"
+                ]
+              },
+              "authorOnlyPremise": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sampling": {
+                "const": "none"
+              },
+              "scoreBasis": {
+                "const": "information-available-before-choice"
+              }
+            },
+            "required": [
+              "mode",
+              "authorOnlyPremise",
+              "sampling",
+              "scoreBasis"
+            ],
+            "additionalProperties": false
+          },
+          "applicableLenses": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "consequences",
+                "rightsDuties",
+                "autonomy",
+                "fairness"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "enum": [
+                    "A",
+                    "B",
+                    "C"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "control": {
+                  "enum": [
+                    "default",
+                    "select-route",
+                    "scene-action"
+                  ]
+                },
+                "slot": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2
+                },
+                "preview": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "outcomeId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "outcome": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^L[0-9]{3}-[ABC]$"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "deaths": {
+                      "type": "object",
+                      "properties": {
+                        "humans": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "cockroaches": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "butterflies": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "humans",
+                        "cockroaches",
+                        "butterflies"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "delayedHumanDeaths": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "rawDeaths": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "weightedImpactTenths": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "ratings": {
+                      "type": "object",
+                      "properties": {
+                        "consequences": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "rightsDuties": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "autonomy": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "fairness": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        }
+                      },
+                      "minProperties": 1,
+                      "additionalProperties": false
+                    },
+                    "scoreNumerator": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "scoreDenominator": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4
+                    },
+                    "reflection": {
+                      "type": "object",
+                      "properties": {
+                        "outcome": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "strongestReason": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "ethicalTension": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "outcome",
+                        "strongestReason",
+                        "ethicalTension"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "summary",
+                    "deaths",
+                    "delayedHumanDeaths",
+                    "rawDeaths",
+                    "weightedImpactTenths",
+                    "ratings",
+                    "scoreNumerator",
+                    "scoreDenominator",
+                    "reflection"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "control",
+                "slot",
+                "preview",
+                "outcomeId",
+                "outcome"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 2,
+            "maxItems": 3
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "chapter",
+          "domain",
+          "philosophicalDistinction",
+          "premise",
+          "provenance",
+          "layout",
+          "timing",
+          "defaultChoiceId",
+          "defaultDisclosure",
+          "knowledge",
+          "applicableLenses",
+          "choices"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 200,
+      "maxItems": 200
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "catalogVersion",
+    "title",
+    "sources",
+    "chapters",
+    "rules",
+    "levels"
+  ],
+  "additionalProperties": false
+}

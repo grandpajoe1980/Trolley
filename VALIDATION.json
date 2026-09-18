@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "scope": "Handoff content/schema/arithmetic only; game/browser implementation not yet present",
+  "checks": 88744,
+  "levels": 200,
+  "outcomes": 423,
+  "chapters": 10,
+  "levelsPerChapter": 20,
+  "templates": {
+    "fork2": 84,
+    "action2": 89,
+    "fork3": 9,
+    "action3": 14,
+    "footbridge": 2,
+    "loop": 2
+  },
+  "canonicalAdaptations": 4,
+  "originalScenarios": 196,
+  "epistemicFixedLevels": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    109,
+    110,
+    111,
+    113,
+    114,
+    115,
+    116,
+    118,
+    119,
+    120,
+    184,
+    195
+  ],
+  "catalogSha256": "038195cc2fffc4118184770c458a3dcd0bddabd440ff6f2e1b66e0c02bda9d9c",
+  "openingFixture": {
+    "rawDeaths": 2,
+    "weightedImpactTenths": 3,
+    "scoreExact": "250/3",
+    "scoreDisplay": "83.3"
+  },
+  "limitations": [
+    "No game code or browser execution tested.",
+    "Scores are authored judgments, not empirically validated morality.",
+    "Narrative/causal review is editorial; integer consistency alone cannot prove philosophy or prose correct."
+  ]
+}
