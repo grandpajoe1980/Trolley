@@ -129,15 +129,30 @@ body {
   border: 1px solid var(--border-main);
   border-radius: var(--radius-lg);
   padding: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.07);
   overflow: hidden;
+  position: relative;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.stage-wrapper:focus-within {
+  border-color: var(--focus-ring);
 }
 
 .trolley-stage {
   width: 100%;
   height: auto;
   display: block;
-  max-height: 500px;
+  max-height: 540px;
+  border-radius: var(--radius-md);
+}
+
+.route-plaque {
+  transition: transform 0.15s ease-out;
+}
+
+.route-plaque:hover {
+  transform: scale(1.04);
 }
 
 /* Cards & Panels */
@@ -146,7 +161,8 @@ body {
   border: 1px solid var(--border-main);
   border-radius: var(--radius-md);
   padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 
 .facts-panel {

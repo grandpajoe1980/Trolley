@@ -1,5 +1,6 @@
 import type { TimingMode } from '../engine/clock';
 import type { SaveManager } from '../storage/save';
+import { sound } from '../audio/sound';
 
 export interface SettingsCallbacks {
   onBackToMenu: () => void;
@@ -153,6 +154,7 @@ export function createSettingsScreen(saveManager: SaveManager, callbacks: Settin
   soundCheck.checked = currentSettings.sound;
   soundCheck.addEventListener('change', () => {
     saveManager.updateSettings({ sound: soundCheck.checked });
+    sound.setEnabled(soundCheck.checked);
   });
 
   soundLabel.appendChild(soundCheck);

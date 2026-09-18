@@ -11,6 +11,7 @@ import { createLibraryScreen } from './ui/library';
 import { createSettingsScreen } from './ui/settings';
 import { createSummaryScreen } from './ui/summary';
 import { createRecoveryScreen } from './ui/recovery';
+import { sound } from './audio/sound';
 
 export class App {
   private root: HTMLElement;
@@ -48,6 +49,7 @@ export class App {
     );
 
     this.initListeners();
+    sound.setEnabled(this.saveManager.getSettings().sound);
     this.route();
   }
 
@@ -376,6 +378,7 @@ export class App {
 
       // Handle commitment persistence
       if (state.session.committed !== null && state.session.resolutionElapsedMs === 0) {
+        sound.playTrolleyBell();
         if (mode === 'campaign') {
           this.saveManager.recordCompletion(
             state.session.levelId,
@@ -389,6 +392,7 @@ export class App {
 
       // Handle transition to Result phase
       if (state.phase === 'result' && !this.currentResultEl) {
+        sound.playLevelComplete();
         this.currentControls?.element.remove();
         this.currentResultEl = createResultPanel(rawLevel, state.session.selectedChoiceId, mode, {
           onNextLevel: () => {

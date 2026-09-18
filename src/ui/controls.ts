@@ -1,5 +1,6 @@
 import type { ChoiceId, PlayerLevel } from '../content/types';
 import type { EngineSession } from '../engine/state';
+import { sound } from '../audio/sound';
 
 export interface ControlsCallbacks {
   onSelectChoice: (id: ChoiceId) => void;
@@ -90,6 +91,7 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
     btn.appendChild(armedStatus);
 
     btn.addEventListener('click', () => {
+      sound.playClick();
       callbacks.onSelectChoice(c.id);
     });
 
@@ -174,10 +176,13 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
 
     // Choice shortcuts: A, B, C or 1, 2, 3
     if (key === 'A' || key === '1') {
+      sound.playClick();
       callbacks.onSelectChoice('A');
     } else if (key === 'B' || key === '2') {
+      sound.playClick();
       callbacks.onSelectChoice('B');
     } else if ((key === 'C' || key === '3') && level.choices.length > 2) {
+      sound.playClick();
       callbacks.onSelectChoice('C');
     }
   };
@@ -206,6 +211,7 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
 
         // Announcement at 10s mark
         if (remainingSec <= 10 && !announcedTenSeconds && isRunning) {
+          sound.playWarning();
           srAnnouncer.textContent = '10 seconds remaining';
           announcedTenSeconds = true;
         }
