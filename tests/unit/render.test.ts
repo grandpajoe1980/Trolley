@@ -58,19 +58,21 @@ describe('Render and UI Layout Templates', () => {
     expect(bridgeStop.y).toBeCloseTo(300, 1);
   });
 
-  it('creates facts panel without leaking any hidden outcome data', () => {
-    const playerLvl = getPlayerLevel(102)!;
-    const panel = createFactsPanel(playerLvl);
+  it('creates facts panel without leaking any hidden outcome data (levels 102, 115, 184, 195)', () => {
+    for (const lvlId of [102, 115, 184, 195]) {
+      const playerLvl = getPlayerLevel(lvlId)!;
+      const panel = createFactsPanel(playerLvl);
 
-    expect(panel.textContent).toContain(playerLvl.title);
-    expect(panel.textContent).toContain(playerLvl.premise);
-    expect(panel.textContent).toContain('Default Path');
+      expect(panel.textContent).toContain(playerLvl.title);
+      expect(panel.textContent).toContain(playerLvl.premise);
+      expect(panel.textContent).toContain('Default Path');
 
-    // Confirm author-only premise / hidden world is not in DOM
-    const rawLvl = getLevel(102)!;
-    expect(panel.textContent).not.toContain(rawLvl.knowledge.authorOnlyPremise);
-    for (const c of rawLvl.choices) {
-      expect(panel.textContent).not.toContain(c.outcome.summary);
+      // Confirm author-only premise / hidden world is not in DOM
+      const rawLvl = getLevel(lvlId)!;
+      expect(panel.textContent).not.toContain(rawLvl.knowledge.authorOnlyPremise);
+      for (const c of rawLvl.choices) {
+        expect(panel.textContent).not.toContain(c.outcome.summary);
+      }
     }
   });
 
