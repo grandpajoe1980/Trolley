@@ -1,0 +1,26 @@
+{
+  "name": "trolley",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && npm run validate:content && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "validate:content": "python3 tools/validate_catalog.py",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vitest": "^5.0.1"
+  }
+}
