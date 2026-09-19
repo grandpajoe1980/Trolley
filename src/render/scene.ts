@@ -18,8 +18,8 @@ import {
   getTrackDefinition,
   APPROACH_TRAVEL_SPEED_MULTIPLIER,
   PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER,
-  sampleApproachPosition,
   sampleBranchPosition,
+  samplePreCommitPosition,
   sampleUntimedLoopPosition,
   STAGE_HEIGHT,
   STAGE_WIDTH
@@ -905,10 +905,10 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
 
         if (reducedMotion) {
           const fraction = session.deadlineMs > 0 ? session.activeElapsedMs / session.deadlineMs : 0;
-          let staticU = 0;
-          if (fraction >= 0.9) staticU = 0.95;
-          else if (fraction >= 0.45) staticU = 0.5;
-          const pose = sampleApproachPosition(staticU);
+          const approachSpeed =
+            APPROACH_TRAVEL_SPEED_MULTIPLIER *
+            (session.selectionOrigin === 'player' ? PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER : 1);
+          const pose = samplePreCommitPosition(level.layout.template, activeSlot, fraction, approachSpeed);
           setTrolleyPose(pose.x, pose.y, pose.angle ?? 0);
         } else if (session.timingMode === 'untimed') {
           const loopSpeed = session.selectionOrigin === 'player' ? PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER : 1;
@@ -920,7 +920,7 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
           const approachSpeed =
             APPROACH_TRAVEL_SPEED_MULTIPLIER *
             (session.selectionOrigin === 'player' ? PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER : 1);
-          const pose = sampleApproachPosition(u, approachSpeed);
+          const pose = samplePreCommitPosition(level.layout.template, activeSlot, u, approachSpeed);
           setTrolleyPose(pose.x, pose.y, pose.angle ?? 0);
         }
       }

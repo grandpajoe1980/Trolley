@@ -21,7 +21,7 @@ export const APPROACH_START_X = 60;
 export const APPROACH_START_Y = 300;
 // The trolley reaches the junction sooner than the full decision window, keeping
 // the opening motion noticeable without changing the decision timer itself.
-export const APPROACH_TRAVEL_SPEED_MULTIPLIER = 2;
+export const APPROACH_TRAVEL_SPEED_MULTIPLIER = 2.2;
 // A deliberate player selection adds a second burst of speed toward the chosen
 // route, making the consequence of taking control immediately visible.
 export const PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER = 1.5;
@@ -263,4 +263,27 @@ export function sampleBranchPosition(template: LayoutTemplate, slot: number, v: 
   } else {
     return { x: 430 + clampedV * (520 - 430), y: 300, angle: 0 };
   }
+}
+
+/**
+ * Continuous pre-commit travel: approach the junction, then immediately
+ * continue along the currently selected branch instead of waiting at the fork.
+ * The speed multiplier applies across both segments and reaches the branch end
+ * when the decision window expires.
+ */
+export function samplePreCommitPosition(
+  template: LayoutTemplate,
+  slot: number,
+  u: number,
+  speedMultiplier = 1
+): Point2D {
+  const safeSpeed = Math.max(1, speedMultiplier);
+  const travelProgress = Math.max(0, u) * safeSpeed;
+
+  if (travelProgress <= 1) {
+    return sampleApproachPosition(travelProgress);
+  }
+
+  const branchProgress = (travelProgress - 1) / (safeSpeed - 1);
+  return sampleBranchPosition(template, slot, branchProgress);
 }

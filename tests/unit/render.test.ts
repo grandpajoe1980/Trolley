@@ -8,6 +8,7 @@ import {
   PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER,
   sampleApproachPosition,
   sampleBranchPosition,
+  samplePreCommitPosition,
   sampleUntimedLoopPosition
 } from '../../src/render/templates';
 import { createControls } from '../../src/ui/controls';
@@ -42,19 +43,37 @@ describe('Render and UI Layout Templates', () => {
   });
 
   it('accelerates the opening approach and adds a second boost after selection', () => {
-    expect(APPROACH_TRAVEL_SPEED_MULTIPLIER).toBe(2);
+    expect(APPROACH_TRAVEL_SPEED_MULTIPLIER).toBe(2.2);
     expect(PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER).toBe(1.5);
-    expect(sampleApproachPosition(0.25, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(
+    expect(sampleApproachPosition(0.5 / APPROACH_TRAVEL_SPEED_MULTIPLIER, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(
       sampleApproachPosition(0.5).x,
       5
     );
     expect(
-      sampleApproachPosition(1 / 6, APPROACH_TRAVEL_SPEED_MULTIPLIER * PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER).x
+      sampleApproachPosition(
+        0.5 / (APPROACH_TRAVEL_SPEED_MULTIPLIER * PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER),
+        APPROACH_TRAVEL_SPEED_MULTIPLIER * PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER
+      ).x
     ).toBeCloseTo(sampleApproachPosition(0.5).x, 5);
     expect(sampleApproachPosition(0.5, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(430, 5);
     expect(
       sampleApproachPosition(1 / 3, APPROACH_TRAVEL_SPEED_MULTIPLIER * PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER).x
     ).toBeCloseTo(430, 5);
+  });
+
+  it('continues directly from the approach onto the selected branch', () => {
+    const speed = APPROACH_TRAVEL_SPEED_MULTIPLIER;
+    const junction = samplePreCommitPosition('fork2', 1, 1 / speed, speed);
+    expect(junction.x).toBeCloseTo(430, 5);
+    expect(junction.y).toBeCloseTo(300, 5);
+
+    const onBranch = samplePreCommitPosition('fork2', 1, 0.75, speed);
+    expect(onBranch.x).toBeGreaterThan(430);
+    expect(onBranch.y).toBeGreaterThan(300);
+
+    const branchEnd = samplePreCommitPosition('fork2', 1, 1, speed);
+    expect(branchEnd.x).toBeCloseTo(900, 1);
+    expect(branchEnd.y).toBeCloseTo(380, 1);
   });
 
   it('sampleUntimedLoopPosition loops without crossing the junction', () => {
