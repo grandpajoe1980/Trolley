@@ -393,12 +393,26 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       const nextChoice = level.choices[(currentSlot + 1 + level.choices.length) % level.choices.length];
       if (nextChoice) onSelectChoice(nextChoice.id);
     };
-    // Bind the real mouse target to the hit area instead of relying on the
-    // parent SVG group to receive bubbled clicks from nested glyphs.
-    switchHitArea.addEventListener('click', (event) => {
+    let pointerSelectionPending = false;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      pointerSelectionPending = true;
+      event.preventDefault();
       event.stopPropagation();
       chooseNextRoute();
-    });
+    };
+    const handleClick = (event: MouseEvent) => {
+      event.stopPropagation();
+      if (pointerSelectionPending) {
+        pointerSelectionPending = false;
+        return;
+      }
+      chooseNextRoute();
+    };
+    // Pointer-down handles real mouse/touch input on the SVG glyph itself;
+    // click remains as a fallback for keyboard and test-generated activation.
+    switchGroup.addEventListener('pointerdown', handlePointerDown);
+    switchGroup.addEventListener('click', handleClick);
     switchGroup.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
