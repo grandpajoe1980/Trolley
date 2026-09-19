@@ -282,12 +282,12 @@ export class App {
       let effectiveLevelId = rawId;
       let effectiveMode = this.currentMode;
 
-      if (rawId > nextUnlocked) {
+      if (rawId > nextUnlocked && this.currentMode !== 'practice') {
         this.routeNotice = `Level ${rawId} is locked. Returning to your next unlocked level (${nextUnlocked}).`;
         window.location.hash = `#/level/${nextUnlocked}`;
         this.route();
         return;
-      } else if (rawId < nextUnlocked) {
+      } else if (rawId < nextUnlocked || this.currentMode === 'practice') {
         // Previously completed level: practice mode
         effectiveMode = 'practice';
       } else {
@@ -380,7 +380,9 @@ export class App {
       },
       onNext: () => {
         if (levelId >= 200 || this.currentSession?.getState().phase !== 'result') return;
-        this.currentMode = 'campaign';
+        // Keep library browsing in practice mode so the next level is never
+        // blocked just because it has not been completed in the campaign.
+        this.currentMode = this.currentMode === 'practice' ? 'practice' : 'campaign';
         window.location.hash = `#/level/${levelId + 1}`;
         this.route();
       }

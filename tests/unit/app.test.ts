@@ -43,6 +43,32 @@ describe('App Router, Shell, and Session Integration', () => {
     app.dispose();
   });
 
+  it('keeps every library level available in practice mode', () => {
+    const app = new App(root);
+
+    window.location.hash = '#/library';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    const library = root.querySelector('.library-container')!;
+    expect(library.querySelectorAll('.library-level-action')).toHaveLength(200);
+    expect(library.textContent).not.toContain('Locked');
+    expect(library.textContent).toContain('Available in Practice Mode');
+
+    const level200 = Array.from(library.querySelectorAll('.library-level-item')).find((item) =>
+      item.textContent?.includes('200.')
+    );
+    const level200Button = level200?.querySelector('.library-level-action') as HTMLButtonElement | null;
+    expect(level200Button).not.toBeNull();
+    level200Button!.click();
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    expect(window.location.hash).toBe('#/level/200');
+    expect(app.getCurrentLevelId()).toBe(200);
+    expect(root.textContent).toContain('Level 200:');
+
+    app.dispose();
+  });
+
   it('clamps route to next unlocked level when player attempts to bypass progression', () => {
     // Attempting level 42 when level 1 is unlocked
     window.location.hash = '#/level/42';

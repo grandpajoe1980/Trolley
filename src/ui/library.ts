@@ -60,12 +60,12 @@ export function createLibraryScreen(saveManager: SaveManager, callbacks: Library
       const lvl = catalog.levels[lvlId - 1]!;
       const isCompleted = lvlId < nextUnlocked;
       const isCurrent = lvlId === nextUnlocked;
-      const isLocked = lvlId > nextUnlocked;
+      const isFuture = lvlId > nextUnlocked;
 
       const item = document.createElement('div');
-      item.className = 'card';
+      item.className = 'card library-level-item';
       item.style.padding = '0.75rem';
-      item.style.backgroundColor = isLocked ? 'var(--bg-subtle)' : '#ffffff';
+      item.style.backgroundColor = '#ffffff';
       item.style.border = isCurrent ? '2px solid var(--primary-color)' : '1px solid var(--border-main)';
 
       const titleLine = document.createElement('strong');
@@ -87,24 +87,24 @@ export function createLibraryScreen(saveManager: SaveManager, callbacks: Library
         statusLine.textContent = 'Next Campaign Level';
         statusLine.style.color = 'var(--primary-color)';
         statusLine.style.fontWeight = '600';
+      } else if (isFuture) {
+        statusLine.textContent = 'Available in Practice Mode';
       } else {
-        statusLine.textContent = 'Locked';
+        statusLine.textContent = 'Available in Practice Mode';
       }
       item.appendChild(statusLine);
 
-      if (!isLocked) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = isCurrent ? 'btn btn-primary' : 'btn btn-secondary';
-        btn.style.fontSize = '0.85rem';
-        btn.style.padding = '0.4rem 0.8rem';
-        btn.style.minHeight = '36px';
-        btn.textContent = isCurrent ? 'Play Campaign' : 'Practice';
-        btn.addEventListener('click', () => {
-          callbacks.onSelectLevel(lvlId, isCurrent ? 'campaign' : 'practice');
-        });
-        item.appendChild(btn);
-      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `${isCurrent ? 'btn btn-primary' : 'btn btn-secondary'} library-level-action`;
+      btn.style.fontSize = '0.85rem';
+      btn.style.padding = '0.4rem 0.8rem';
+      btn.style.minHeight = '36px';
+      btn.textContent = isCurrent ? 'Play Campaign' : isCompleted ? 'Practice Again' : 'Practice';
+      btn.addEventListener('click', () => {
+        callbacks.onSelectLevel(lvlId, isCurrent ? 'campaign' : 'practice');
+      });
+      item.appendChild(btn);
 
       levelsGrid.appendChild(item);
     }
