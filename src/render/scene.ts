@@ -370,10 +370,11 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     transform: 'translate(420, 325)'
   });
   const switchHitArea = createSvgElement('rect', {
+    class: 'scene-switch-hit-area',
     x: -30,
-    y: -36,
+    y: -42,
     width: 60,
-    height: 72,
+    height: 84,
     fill: 'transparent',
     'pointer-events': 'all'
   });
@@ -392,7 +393,12 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       const nextChoice = level.choices[(currentSlot + 1 + level.choices.length) % level.choices.length];
       if (nextChoice) onSelectChoice(nextChoice.id);
     };
-    switchGroup.addEventListener('click', chooseNextRoute);
+    // Bind the real mouse target to the hit area instead of relying on the
+    // parent SVG group to receive bubbled clicks from nested glyphs.
+    switchHitArea.addEventListener('click', (event) => {
+      event.stopPropagation();
+      chooseNextRoute();
+    });
     switchGroup.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();

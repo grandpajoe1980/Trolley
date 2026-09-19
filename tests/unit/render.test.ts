@@ -286,8 +286,8 @@ describe('Render and UI Layout Templates', () => {
       false
     );
 
-    const switchAssembly = scene.element.querySelector('.scene-switch-assembly') as SVGGElement;
-    switchAssembly.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const switchHitArea = scene.element.querySelector('.scene-switch-hit-area') as SVGRectElement;
+    switchHitArea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(selectedChoice).toBe('A');
 
     scene.destroy();
