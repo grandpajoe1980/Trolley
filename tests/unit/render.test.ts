@@ -90,9 +90,7 @@ describe('Render and UI Layout Templates', () => {
         resolved = true;
       },
       onPause: () => {},
-      onResume: () => {},
-      onSkipAnimation: () => {},
-      onRestartLevel: () => {}
+      onResume: () => {}
     });
 
     const btnB = controls.element.querySelector('.choice-btn-B') as HTMLButtonElement;
@@ -100,9 +98,10 @@ describe('Render and UI Layout Templates', () => {
     btnB.click();
     expect(selectedId).toBe('B');
 
-    const resolveBtn = controls.element.querySelector('.btn-resolve') as HTMLButtonElement;
-    resolveBtn.click();
+    btnB.click();
     expect(resolved).toBe(true);
+
+    expect(controls.element.querySelector('.btn-resolve')).toBeNull();
 
     controls.destroy();
   });
@@ -111,8 +110,7 @@ describe('Render and UI Layout Templates', () => {
     const lvl1 = getLevel(1)!;
     const outcome1A = getOutcome(1, 'A')!;
 
-    const panel = createResultPanel(lvl1, 'A', 'campaign', {
-      onNextLevel: () => {},
+    const panel = createResultPanel(lvl1, 'A', 'default', 'campaign', {
       onReplayPractice: () => {},
       onReturnToCampaign: () => {},
       onViewSummary: () => {}
@@ -121,7 +119,11 @@ describe('Render and UI Layout Templates', () => {
     expect(panel.textContent).toContain(outcome1A.summary);
     expect(panel.textContent).toContain(outcome1A.reflection.strongestReason);
     expect(panel.textContent).toContain(outcome1A.reflection.ethicalTension);
-    expect(panel.textContent).toContain('Raw Fatalities');
+    expect(panel.textContent).toContain('Fatalities');
+    expect(panel.textContent).not.toContain('Humans:');
+    expect(panel.textContent).not.toContain('Combined biological deaths');
+    expect(panel.firstElementChild?.className).toBe('result-header');
+    expect(panel.querySelector('.btn-next')).toBeNull();
   });
 
   it('verifies representative levels from Section 11 Phase 4 (19, 32, 41, 45, 114, 153, 180, 200)', () => {
@@ -164,7 +166,39 @@ describe('Render and UI Layout Templates', () => {
     scene.destroy();
   });
 
-  it('renders blood splatters and casualty indicators on impacted tracks during resolution', () => {
+  it('uses public route facts to choose the right opening sprites', () => {
+    const l1 = getPlayerLevel(1)!;
+    expect(parseChoiceTarget(l1, l1.choices[0]!, 0)).toMatchObject({ type: 'human', count: 1 });
+    expect(parseChoiceTarget(l1, l1.choices[1]!, 1).type).toBe('none');
+
+    const l2 = getPlayerLevel(2)!;
+    expect(parseChoiceTarget(l2, l2.choices[1]!, 1)).toMatchObject({ type: 'bug', count: 1 });
+
+    const l3 = getPlayerLevel(3)!;
+    expect(parseChoiceTarget(l3, l3.choices[1]!, 1)).toMatchObject({ type: 'butterfly', count: 1 });
+
+    const l7 = getPlayerLevel(7)!;
+    expect(parseChoiceTarget(l7, l7.choices[1]!, 1).type).toBe('object');
+
+    const l8 = getPlayerLevel(8)!;
+    expect(parseChoiceTarget(l8, l8.choices[0]!, 0)).toMatchObject({ type: 'human', count: 1 });
+    expect(parseChoiceTarget(l8, l8.choices[1]!, 1).type).toBe('object');
+
+    const l15 = getPlayerLevel(15)!;
+    expect(parseChoiceTarget(l15, l15.choices[1]!, 1)).toMatchObject({ type: 'bug', count: 20 });
+  });
+
+  it('renders every route and non-graphic scene for levels 1 through 25', () => {
+    for (let id = 1; id <= 25; id += 1) {
+      const playerLevel = getPlayerLevel(id)!;
+      const scene = createScene(playerLevel);
+      expect(scene.element.querySelectorAll('.route-plaque').length).toBe(playerLevel.choices.length);
+      expect(scene.element.querySelectorAll('.blood-splatter, .glyph-blood-splatter').length).toBe(0);
+      scene.destroy();
+    }
+  });
+
+  it('uses quiet fade treatment and a clickable physical switch during resolution', () => {
     const pLvl4 = getPlayerLevel(4)!;
     const rawLvl4 = getLevel(4)!;
 
@@ -173,11 +207,8 @@ describe('Render and UI Layout Templates', () => {
       selectedChoice = id;
     });
 
-    const bloodA = scene.element.querySelector('.blood-splatter-A') as SVGGElement;
-    const bloodB = scene.element.querySelector('.blood-splatter-B') as SVGGElement;
-    expect(bloodA).not.toBeNull();
-    expect(bloodB).not.toBeNull();
-    expect(bloodA.getAttribute('opacity')).toBe('0');
+    expect(scene.element.querySelector('.blood-splatter-A')).toBeNull();
+    expect(scene.element.querySelector('.blood-splatter-B')).toBeNull();
 
     // Simulate resolution of choice A at full impact
     scene.update(
@@ -207,13 +238,39 @@ describe('Render and UI Layout Templates', () => {
       false
     );
 
-    expect(bloodA.getAttribute('opacity')).toBe('1');
-    expect(bloodB.getAttribute('opacity')).toBe('0');
+    const targetA = scene.element.querySelector('.target-glyph-A .glyph-group') as SVGGElement;
+    expect(targetA.style.opacity).toBe('0.18');
+    expect(scene.element.querySelector('.glyph-blood-splatter')).toBeNull();
 
     // Target glyph and plaque should be clickable
     const plaqueB = scene.element.querySelector('.route-plaque-B') as SVGGElement;
     plaqueB.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(selectedChoice).toBe('B');
+
+    scene.update(
+      {
+        levelId: 4,
+        level: rawLvl4,
+        mode: 'campaign',
+        selectedChoiceId: 'B',
+        selectionOrigin: 'player',
+        timingMode: 'standard',
+        deadlineMs: 30000,
+        activeElapsedMs: 1000,
+        resolutionElapsedMs: 0,
+        anchorMs: null,
+        phaseBeforePause: null,
+        pauseReason: null,
+        committed: null,
+        sessionId: 'test-sess',
+        campaignId: 'test-camp'
+      },
+      false
+    );
+
+    const switchAssembly = scene.element.querySelector('.scene-switch-assembly') as SVGGElement;
+    switchAssembly.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(selectedChoice).toBe('A');
 
     scene.destroy();
   });

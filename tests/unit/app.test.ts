@@ -1,14 +1,19 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app';
 
 describe('App Router, Shell, and Session Integration', () => {
   let root: HTMLElement;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     window.location.hash = '';
     window.localStorage.clear();
     document.body.innerHTML = '<div id="app"></div>';
     root = document.getElementById('app')!;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders main menu on empty hash or #/', () => {
@@ -56,28 +61,31 @@ describe('App Router, Shell, and Session Integration', () => {
     const app = new App(root);
 
     expect(root.textContent).toContain('Level 1:');
+    const levelContainer = root.querySelector('.level-container')!;
+    expect(levelContainer.firstElementChild?.className).toBe('level-play-area');
+    expect(levelContainer.querySelector('.facts-panel')).not.toBeNull();
+    expect(Array.from(levelContainer.children).indexOf(levelContainer.querySelector('.facts-panel')!)).toBeGreaterThan(0);
+    expect(levelContainer.querySelector('.level-navigation')).not.toBeNull();
+    expect((levelContainer.querySelector('.level-nav-previous') as HTMLButtonElement).disabled).toBe(true);
+    expect((levelContainer.querySelector('.level-nav-next') as HTMLButtonElement).disabled).toBe(true);
 
     // Click choice B button
     const btnB = root.querySelector('.choice-btn-B') as HTMLButtonElement;
     expect(btnB).toBeDefined();
     btnB.click();
 
-    // Click Resolve now
-    const resolveBtn = root.querySelector('.btn-resolve') as HTMLButtonElement;
-    expect(resolveBtn).toBeDefined();
-    resolveBtn.click();
+    // Confirm the selected choice with a second click.
+    btnB.click();
 
-    // Fast-forward or skip animation
-    const skipBtn = root.querySelector('.btn-skip') as HTMLButtonElement;
-    if (skipBtn && skipBtn.style.display !== 'none') {
-      skipBtn.click();
-    }
+    // The result is rendered after its short resolution animation.
+    vi.advanceTimersByTime(2400);
 
     // Result panel should be mounted
     const resultPanel = root.querySelector('.result-panel');
     expect(resultPanel).toBeDefined();
     expect(resultPanel?.textContent).toContain('Choice B Committed');
-    expect(resultPanel?.textContent).toContain('Raw Fatalities');
+    expect(resultPanel?.textContent).toContain('Fatalities');
+    expect(resultPanel?.querySelector('.btn-next')).toBeNull();
 
     app.dispose();
   });
@@ -86,21 +94,18 @@ describe('App Router, Shell, and Session Integration', () => {
     window.location.hash = '#/level/1';
     const app = new App(root);
 
-    // Commit choice A
-    const resolveBtn = root.querySelector('.btn-resolve') as HTMLButtonElement;
-    resolveBtn.click();
+    // Commit choice A with a second click.
+    const btnA = root.querySelector('.choice-btn-A') as HTMLButtonElement;
+    btnA.click();
+    btnA.click();
 
-    // Skip animation if presented
-    const skipBtn = root.querySelector('.btn-skip') as HTMLButtonElement;
-    if (skipBtn && skipBtn.style.display !== 'none') {
-      skipBtn.click();
-    }
+    vi.advanceTimersByTime(2400);
 
     const resultPanel = root.querySelector('.result-panel');
     expect(resultPanel).not.toBeNull();
 
-    // Click Next: Level 2
-    const nextBtn = root.querySelector('.btn-next') as HTMLButtonElement;
+    // Click Next: Level 2 from the level navigation row.
+    const nextBtn = root.querySelector('.level-nav-next') as HTMLButtonElement;
     expect(nextBtn).not.toBeNull();
     nextBtn.click();
 
@@ -111,29 +116,15 @@ describe('App Router, Shell, and Session Integration', () => {
     app.dispose();
   });
 
-  it('toggles speed multiplier with speed button and keyboard shortcut S', () => {
+  it('keeps the active controls deliberately small', () => {
     window.location.hash = '#/level/1';
     const app = new App(root);
 
-    const speedBtn = root.querySelector('.btn-speed') as HTMLButtonElement;
-    expect(speedBtn).not.toBeNull();
-    expect(speedBtn.textContent).toContain('Speed up (3×)');
-
-    // Click to 3x
-    speedBtn.click();
-    expect(speedBtn.textContent).toContain('Fast (3×) → 5×');
-
-    // Click to 5x
-    speedBtn.click();
-    expect(speedBtn.textContent).toContain('Normal (1×)');
-
-    // Click to 1x
-    speedBtn.click();
-    expect(speedBtn.textContent).toContain('Speed up (3×)');
-
-    // Shortcut 'S'
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 's' }));
-    expect(speedBtn.textContent).toContain('Fast (3×) → 5×');
+    expect(root.querySelector('.btn-speed')).toBeNull();
+    expect(root.querySelector('.btn-skip')).toBeNull();
+    expect(root.querySelector('.btn-restart')).toBeNull();
+    expect(root.querySelector('.btn-pause')).not.toBeNull();
+    expect(root.querySelector('.btn-resolve')).toBeNull();
 
     app.dispose();
   });

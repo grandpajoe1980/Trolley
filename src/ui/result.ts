@@ -2,7 +2,6 @@ import type { ChoiceId, Level, Outcome } from '../content/types';
 import { formatDecimal1 } from '../engine/scoring';
 
 export interface ResultCallbacks {
-  onNextLevel: () => void;
   onReplayPractice: () => void;
   onReturnToCampaign: () => void;
   onViewSummary: () => void;
@@ -11,6 +10,7 @@ export interface ResultCallbacks {
 export function createResultPanel(
   level: Level,
   committedChoiceId: ChoiceId,
+  selectionOrigin: 'default' | 'player',
   mode: 'campaign' | 'practice',
   callbacks: ResultCallbacks
 ): HTMLElement {
@@ -32,6 +32,11 @@ export function createResultPanel(
   heading.textContent = `Choice ${choice.id} Committed: ${choice.label}`;
   header.appendChild(heading);
 
+  const origin = document.createElement('p');
+  origin.className = 'selection-origin';
+  origin.textContent = selectionOrigin === 'default' ? 'Selected by the disclosed default.' : 'Selected by you.';
+  header.appendChild(origin);
+
   const summaryP = document.createElement('p');
   summaryP.className = 'outcome-summary';
   summaryP.textContent = outcome.summary;
@@ -39,21 +44,59 @@ export function createResultPanel(
 
   container.appendChild(header);
 
-  // 2. Metrics Card (Raw Deaths, Weighted Impact, Exact Rational Score)
+  // 2. Secondary result actions. Campaign progression uses the level
+  // navigator under the game; only practice actions and the final summary
+  // remain here.
+  const navActions = document.createElement('footer');
+  navActions.className = 'result-actions result-actions-top';
+
+  if (mode === 'campaign') {
+    if (level.id === 200) {
+      const summaryBtn = document.createElement('button');
+      summaryBtn.type = 'button';
+      summaryBtn.className = 'btn btn-primary btn-summary';
+      summaryBtn.textContent = 'Complete Campaign — View Final Summary';
+      summaryBtn.addEventListener('click', () => callbacks.onViewSummary());
+      navActions.appendChild(summaryBtn);
+    }
+  } else {
+    const replayBtn = document.createElement('button');
+    replayBtn.type = 'button';
+    replayBtn.className = 'btn btn-secondary';
+    replayBtn.textContent = 'Replay Level';
+    replayBtn.addEventListener('click', () => callbacks.onReplayPractice());
+    navActions.appendChild(replayBtn);
+
+    const returnBtn = document.createElement('button');
+    returnBtn.type = 'button';
+    returnBtn.className = 'btn btn-primary';
+    returnBtn.textContent = 'Return to Campaign';
+    returnBtn.addEventListener('click', () => callbacks.onReturnToCampaign());
+    navActions.appendChild(returnBtn);
+  }
+
+  if (navActions.childElementCount > 0) {
+    container.appendChild(navActions);
+  }
+
+  // 3. Metrics Card (Fatalities, Weighted Impact, Exact Rational Score)
   const metricsCard = document.createElement('div');
   metricsCard.className = 'card metrics-card';
 
   const metricsGrid = document.createElement('div');
   metricsGrid.className = 'metrics-grid';
 
-  // Raw Deaths block
+  // Combined fatalities block. Species-specific counts remain authoring data,
+  // but the player-facing tally is intentionally one combined number.
   const rawBlock = document.createElement('div');
   rawBlock.className = 'metric-item';
-  rawBlock.innerHTML = `
-    <span class="metric-label">Raw Fatalities</span>
-    <span class="metric-value raw-value">${outcome.rawDeaths}</span>
-    <span class="metric-detail">Humans: ${outcome.deaths.humans}, Roaches: ${outcome.deaths.cockroaches}, Butterflies: ${outcome.deaths.butterflies}</span>
-  `;
+  const rawLabel = document.createElement('span');
+  rawLabel.className = 'metric-label';
+  rawLabel.textContent = 'Fatalities';
+  const rawValue = document.createElement('span');
+  rawValue.className = 'metric-value raw-value';
+  rawValue.textContent = String(outcome.rawDeaths);
+  rawBlock.append(rawLabel, rawValue);
   metricsGrid.appendChild(rawBlock);
 
   // Weighted Impact block
@@ -81,7 +124,7 @@ export function createResultPanel(
   metricsCard.appendChild(metricsGrid);
   container.appendChild(metricsCard);
 
-  // 3. Epilogue Timeline (for delayed human deaths)
+  // 4. Epilogue Timeline (for delayed human deaths)
   if (outcome.delayedHumanDeaths > 0) {
     const epilogue = document.createElement('div');
     epilogue.className = 'callout epilogue-callout';
@@ -92,7 +135,7 @@ export function createResultPanel(
     container.appendChild(epilogue);
   }
 
-  // 4. Ethical Lens Breakdown
+  // 5. Ethical Lens Breakdown
   const lensSection = document.createElement('div');
   lensSection.className = 'card lens-breakdown';
 
@@ -125,7 +168,7 @@ export function createResultPanel(
   lensSection.appendChild(lensList);
   container.appendChild(lensSection);
 
-  // 5. Three-Part Reflection
+  // 6. Three-Part Reflection
   const reflectionSection = document.createElement('div');
   reflectionSection.className = 'card reflection-card';
 
@@ -152,7 +195,7 @@ export function createResultPanel(
 
   container.appendChild(reflectionSection);
 
-  // 6. Compare Alternatives Accordion
+  // 7. Compare Alternatives Accordion
   const compareDetails = document.createElement('details');
   compareDetails.className = 'card compare-details';
 
@@ -166,7 +209,7 @@ export function createResultPanel(
     <thead>
       <tr>
         <th>Choice</th>
-        <th>Raw Deaths</th>
+        <th>Fatalities</th>
         <th>Weighted Impact</th>
         <th>Score</th>
         <th>Summary</th>
@@ -194,45 +237,6 @@ export function createResultPanel(
   `;
   compareDetails.appendChild(compareTable);
   container.appendChild(compareDetails);
-
-  // 7. Navigation Actions
-  const navActions = document.createElement('footer');
-  navActions.className = 'result-actions';
-
-  if (mode === 'campaign') {
-    if (level.id < 200) {
-      const nextBtn = document.createElement('button');
-      nextBtn.type = 'button';
-      nextBtn.className = 'btn btn-primary btn-next';
-      nextBtn.textContent = `Next: Level ${level.id + 1}`;
-      nextBtn.addEventListener('click', () => callbacks.onNextLevel());
-      navActions.appendChild(nextBtn);
-    } else {
-      const summaryBtn = document.createElement('button');
-      summaryBtn.type = 'button';
-      summaryBtn.className = 'btn btn-primary btn-summary';
-      summaryBtn.textContent = 'Complete Campaign — View Final Summary';
-      summaryBtn.addEventListener('click', () => callbacks.onViewSummary());
-      navActions.appendChild(summaryBtn);
-    }
-  } else {
-    // Practice mode
-    const replayBtn = document.createElement('button');
-    replayBtn.type = 'button';
-    replayBtn.className = 'btn btn-secondary';
-    replayBtn.textContent = 'Replay Level';
-    replayBtn.addEventListener('click', () => callbacks.onReplayPractice());
-    navActions.appendChild(replayBtn);
-
-    const returnBtn = document.createElement('button');
-    returnBtn.type = 'button';
-    returnBtn.className = 'btn btn-primary';
-    returnBtn.textContent = 'Return to Campaign';
-    returnBtn.addEventListener('click', () => callbacks.onReturnToCampaign());
-    navActions.appendChild(returnBtn);
-  }
-
-  container.appendChild(navActions);
 
   // Focus the heading on creation for screen readers
   setTimeout(() => {

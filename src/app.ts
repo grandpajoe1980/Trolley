@@ -1,4 +1,4 @@
-import { getLevel, getPlayerLevel } from './content/catalog';
+import { getLevel, getOutcome, getPlayerLevel } from './content/catalog';
 import { generateUUID, SaveManager } from './storage/save';
 import { TabCoordinator } from './storage/locks';
 import { SessionManager } from './engine/session';
@@ -11,7 +11,9 @@ import { createLibraryScreen } from './ui/library';
 import { createSettingsScreen } from './ui/settings';
 import { createSummaryScreen } from './ui/summary';
 import { createRecoveryScreen } from './ui/recovery';
+import { createLevelNavigation, type LevelNavigationComponent } from './ui/level-navigation';
 import { sound } from './audio/sound';
+import { computeCampaignMetrics } from './engine/scoring';
 
 export class App {
   private root: HTMLElement;
@@ -20,6 +22,7 @@ export class App {
   private currentSession: SessionManager | null = null;
   private currentScene: SceneComponent | null = null;
   private currentControls: ControlsComponent | null = null;
+  private currentLevelNavigation: LevelNavigationComponent | null = null;
   private currentResultEl: HTMLElement | null = null;
   private currentLevelId: number | null = null;
 
@@ -29,6 +32,7 @@ export class App {
   private currentMode: 'campaign' | 'practice' = 'campaign';
   private checkpointThrottleTimer: number | null = null;
   private isDisposed = false;
+  private routeNotice: string | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -149,6 +153,10 @@ export class App {
       this.currentControls.destroy();
       this.currentControls = null;
     }
+    if (this.currentLevelNavigation) {
+      this.currentLevelNavigation.destroy();
+      this.currentLevelNavigation = null;
+    }
     if (this.checkpointThrottleTimer !== null) {
       clearInterval(this.checkpointThrottleTimer);
       this.checkpointThrottleTimer = null;
@@ -160,6 +168,7 @@ export class App {
   public route(): void {
     if (this.isDisposed) return;
     this.teardownCurrentSession();
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 
     // Check for corrupt save first
     const loaded = this.saveManager.loadSave();
@@ -191,6 +200,15 @@ export class App {
     mainContainer.className = 'main-content';
     appShell.appendChild(mainContainer);
     this.root.appendChild(appShell);
+
+    if (this.routeNotice) {
+      const notice = document.createElement('div');
+      notice.className = 'callout epistemic-notice route-notice';
+      notice.setAttribute('role', 'status');
+      notice.textContent = this.routeNotice;
+      mainContainer.appendChild(notice);
+      this.routeNotice = null;
+    }
 
     // Route matching
     if (hash === '' || hash === '#/' || hash === '#') {
@@ -265,9 +283,7 @@ export class App {
       let effectiveMode = this.currentMode;
 
       if (rawId > nextUnlocked) {
-        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-          window.alert(`Level ${rawId} is currently locked. Returning to your next unlocked level (${nextUnlocked}).`);
-        }
+        this.routeNotice = `Level ${rawId} is locked. Returning to your next unlocked level (${nextUnlocked}).`;
         window.location.hash = `#/level/${nextUnlocked}`;
         this.route();
         return;
@@ -299,30 +315,83 @@ export class App {
     const levelContainer = document.createElement('main');
     levelContainer.className = 'level-container';
 
-    // 1. Facts Panel
-    const facts = createFactsPanel(playerLevel);
-    levelContainer.appendChild(facts);
+    const statusBar = document.createElement('section');
+    statusBar.className = 'level-statusbar';
+    statusBar.setAttribute('aria-label', 'Campaign totals');
+    const statusValues = new Map<string, HTMLElement>();
+    const addStatusItem = (label: string, key: string) => {
+      const item = document.createElement('div');
+      item.className = 'level-status-item';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'level-status-label';
+      labelEl.textContent = label;
+      const valueEl = document.createElement('span');
+      valueEl.className = 'level-status-value';
+      item.append(labelEl, valueEl);
+      statusBar.appendChild(item);
+      statusValues.set(key, valueEl);
+    };
+    addStatusItem('Progress', 'progress');
+    addStatusItem('Fatalities', 'fatalities');
+    addStatusItem('Impact', 'impact');
+    addStatusItem('Morality', 'morality');
+    const updateStatusBar = () => {
+      const save = this.saveManager.getSave();
+      const outcomes = save.completions
+        .map((completion) => getOutcome(completion.levelId, completion.choiceId))
+        .filter((outcome): outcome is NonNullable<typeof outcome> => outcome !== undefined);
+      const metrics = computeCampaignMetrics(outcomes);
+      statusValues.get('progress')!.textContent = `Level ${levelId} · ${metrics.completedCount}/200`;
+      statusValues.get('fatalities')!.textContent = String(metrics.rawDeaths);
+      statusValues.get('impact')!.textContent = (metrics.weightedImpactTenths / 10).toFixed(1);
+      statusValues.get('morality')!.textContent = metrics.campaignScore === null ? 'Not yet rated' : metrics.displayScore;
+    };
+    updateStatusBar();
 
-    // 2. Stage Wrapper
+    // Put the interactive game immediately below the header. The facts panel
+    // follows the game so the first view is focused on play.
+    const playArea = document.createElement('div');
+    playArea.className = 'level-play-area';
+
     const stageWrapper = document.createElement('div');
     stageWrapper.className = 'stage-wrapper';
     this.currentScene = createScene(playerLevel, (choiceId) => {
       this.currentSession?.selectChoice(choiceId);
     });
     stageWrapper.appendChild(this.currentScene.element);
-    levelContainer.appendChild(stageWrapper);
+    playArea.appendChild(stageWrapper);
 
-    // 3. Controls Panel
+    // Controls sit beside the game on wide screens and below it on narrow screens.
     this.currentControls = createControls(playerLevel, {
       onSelectChoice: (id) => this.currentSession?.selectChoice(id),
       onResolveNow: () => this.currentSession?.resolveNow(),
       onPause: () => this.currentSession?.pause('user'),
-      onResume: () => this.currentSession?.resume(),
-      onSkipAnimation: () => this.currentSession?.skipAnimation(),
-      onRestartLevel: () => this.currentSession?.restartLevel(),
-      onToggleSpeed: () => (this.currentSession ? this.currentSession.toggleSpeed() : 1)
+      onResume: () => this.currentSession?.resume()
     });
-    levelContainer.appendChild(this.currentControls.element);
+    playArea.appendChild(this.currentControls.element);
+    levelContainer.appendChild(playArea);
+
+    this.currentLevelNavigation = createLevelNavigation(playerLevel, {
+      onPrevious: () => {
+        if (levelId <= 1) return;
+        this.currentMode = 'practice';
+        window.location.hash = `#/level/${levelId - 1}`;
+        this.route();
+      },
+      onNext: () => {
+        if (levelId >= 200 || this.currentSession?.getState().phase !== 'result') return;
+        this.currentMode = 'campaign';
+        window.location.hash = `#/level/${levelId + 1}`;
+        this.route();
+      }
+    });
+    levelContainer.appendChild(this.currentLevelNavigation.element);
+
+    // Keep campaign totals close to the game, before the longer premise panel.
+    levelContainer.appendChild(statusBar);
+
+    const facts = createFactsPanel(playerLevel);
+    levelContainer.appendChild(facts);
 
     parent.appendChild(levelContainer);
 
@@ -343,6 +412,7 @@ export class App {
       // Update scene & controls
       this.currentScene?.update(state.session, reducedMotion);
       this.currentControls?.update(state.session);
+      this.currentLevelNavigation?.update(state.session);
 
       // Handle commitment persistence (reliably triggers once on commit)
       if (state.session.committed !== null && !completionRecorded) {
@@ -357,44 +427,34 @@ export class App {
           );
           this.tabCoordinator.updateRevision(this.saveManager.getSave().revision);
         }
+        updateStatusBar();
       }
 
       // Handle transition to Result phase
       if (state.phase === 'result' && !this.currentResultEl) {
         sound.playLevelComplete();
         this.currentControls?.element.remove();
-        this.currentResultEl = createResultPanel(rawLevel, state.session.selectedChoiceId, mode, {
-          onNextLevel: () => {
-            const nextLvlId = levelId + 1;
-            // Guarantee completion is recorded before route change
-            if (mode === 'campaign' && !this.saveManager.getSave().completions.some((c) => c.levelId === levelId)) {
-              if (state.session?.committed) {
-                this.saveManager.recordCompletion(
-                  levelId,
-                  state.session.committed.choiceId,
-                  state.session.committed.outcomeId,
-                  state.session.sessionId
-                );
-              }
+        this.currentResultEl = createResultPanel(
+          rawLevel,
+          state.session.selectedChoiceId,
+          state.session.committed?.selectionOrigin ?? state.session.selectionOrigin,
+          mode,
+          {
+            onReplayPractice: () => {
+              this.teardownCurrentSession();
+              this.mountLevel(levelId, 'practice', parent);
+            },
+            onReturnToCampaign: () => {
+              const nextLvl = this.saveManager.getNextUnlockedLevel();
+              window.location.hash = `#/level/${nextLvl}`;
+              this.route();
+            },
+            onViewSummary: () => {
+              window.location.hash = '#/summary';
+              this.route();
             }
-            this.currentMode = 'campaign';
-            window.location.hash = `#/level/${nextLvlId}`;
-            this.route();
-          },
-          onReplayPractice: () => {
-            this.teardownCurrentSession();
-            this.mountLevel(levelId, 'practice', parent);
-          },
-          onReturnToCampaign: () => {
-            const nextLvl = this.saveManager.getNextUnlockedLevel();
-            window.location.hash = `#/level/${nextLvl}`;
-            this.route();
-          },
-          onViewSummary: () => {
-            window.location.hash = '#/summary';
-            this.route();
           }
-        });
+        );
         levelContainer.appendChild(this.currentResultEl);
       }
     });
@@ -414,8 +474,8 @@ export class App {
         activeElapsedMs: checkpoint.activeElapsedMs,
         resolutionElapsedMs: checkpoint.phase === 'result' ? 2400 : 0,
         anchorMs: null,
-        phaseBeforePause: null,
-        pauseReason: null,
+        phaseBeforePause: checkpoint.committedOutcomeId ? null : 'running',
+        pauseReason: checkpoint.committedOutcomeId ? null : 'user',
         committed: checkpoint.committedOutcomeId
           ? {
               choiceId: checkpoint.selectedChoiceId,
@@ -427,7 +487,7 @@ export class App {
           : null,
         sessionId: checkpoint.sessionId,
         campaignId
-      });
+      }, checkpoint.committedOutcomeId ? 'result' : 'paused');
     } else {
       // Fresh start
       this.currentSession.startLevel(rawLevel, mode, settings.timingMode, sessionId, campaignId);

@@ -1,12 +1,12 @@
 import type { ChoiceId, PlayerChoice, PlayerLevel } from '../content/types';
 import type { EngineSession } from '../engine/state';
 import {
-  createBloodSplatterGlyph,
   createBufferStopGlyph,
   createButterflyGlyph,
   createCockroachGlyph,
   createGroupGlyph,
   createImpactCloudGlyph,
+  createObjectGlyph,
   createPersonGlyph,
   createQuestionGlyph,
   createRobotGlyph,
@@ -31,68 +31,146 @@ export interface SceneComponent {
 }
 
 export interface ChoiceTargetInfo {
-  type: 'human' | 'bug' | 'butterfly' | 'robot';
+  type: 'human' | 'bug' | 'butterfly' | 'robot' | 'object' | 'none';
   count: number;
+  objectKind?: string;
+}
+
+const NUMBER_WORDS: Record<string, number> = {
+  zero: 0,
+  no: 0,
+  nobody: 0,
+  one: 1,
+  lone: 1,
+  both: 2,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  twenty: 20,
+  hundred: 100
+};
+
+function countFromText(text: string): number | null {
+  const normalized = text.toLowerCase();
+  const countMatch = normalized.match(
+    /\b(\d+|zero|no|nobody|one|lone|both|two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\b\s+(?:people|person|humans|human|persons|strangers|workers|passengers|patients|civilians|bystanders|children|adults|cockroaches|roaches|butterflies|die|dies|died|death|deaths|survive|survives|on|face|are)\b/i
+  );
+  if (countMatch?.[1]) {
+    const token = countMatch[1].toLowerCase();
+    return NUMBER_WORDS[token] ?? Number.parseInt(token, 10);
+  }
+  if (/\b(the|a|an|one)\s+(human|person|passenger|patient|worker|stranger|celebrity|driver)\b/.test(normalized)) {
+    return 1;
+  }
+  return null;
+}
+
+function speciesFromText(text: string): ChoiceTargetInfo['type'] | null {
+  const normalized = text.toLowerCase();
+  if (/\b(cockroach|cockroaches|roach|roaches|bug|bugs)\b/.test(normalized)) return 'bug';
+  if (/\b(butterfly|butterflies)\b/.test(normalized)) return 'butterfly';
+  if (/\b(robot|android|automaton)\b/.test(normalized)) return 'robot';
+  if (/\b(human|humans|person|people|passenger|passengers|patient|patients|worker|workers|stranger|strangers|celebrity|driver|bystander|bystanders|child|children|adult|adults)\b/.test(normalized)) return 'human';
+  return null;
+}
+
+function speciesDyingInPreview(text: string): ChoiceTargetInfo['type'] | null {
+  const normalized = text.toLowerCase();
+  const deathIndex = normalized.search(/\b(die|dies|died|death|deaths|killed|killing)\b/);
+  if (deathIndex < 0) return null;
+  return speciesFromText(normalized.slice(Math.max(0, deathIndex - 42), deathIndex + 12));
+}
+
+function objectKindFromText(text: string): string | null {
+  const normalized = text.toLowerCase();
+  const objects: Array<[RegExp, string]> = [
+    [/\b(duck|ducks|porcelain)\b/, 'porcelain ducks'],
+    [/\b(workshop|livelihood)\b/, 'workshop'],
+    [/\b(souvenir|collection|archive|museum|inheritance|memorial)\b/, 'collection'],
+    [/\b(net|nets)\b/, 'rescue net'],
+    [/\b(brake|brakes)\b/, 'emergency brake'],
+    [/\b(gate|door|trapdoor)\b/, 'gate'],
+    [/\b(barrier|shield)\b/, 'barrier'],
+    [/\b(umbrella)\b/, 'liability umbrella'],
+    [/\b(coupon|receipt|ticket|sticker)\b/, 'coupon'],
+    [/\b(file|files|data|machine|console|scanner|camera|sensor|switch|lever|button|wrench|sign|alarm)\b/, 'control console'],
+    [/\b(hospital|organ|medicine|vaccine|oxygen)\b/, 'medical equipment'],
+    [/\b(wax philosopher|wax figure)\b/, 'wax figure'],
+    [/\b(destroyed|destroy|break|broken|property|object)\b/, 'object']
+  ];
+  return objects.find(([pattern]) => pattern.test(normalized))?.[1] ?? null;
+}
+
+function objectKindFromActionTarget(actionTarget: PlayerLevel['layout']['actionTarget']): string | null {
+  switch (actionTarget) {
+    case 'control-console':
+      return 'control console';
+    case 'rail-switch':
+      return 'rail switch';
+    case 'trapdoor-control':
+      return 'trapdoor';
+    default:
+      return null;
+  }
+}
+
+function routeContext(level: PlayerLevel, idx: number): string {
+  const premise = level.premise.toLowerCase();
+  const sidingIndex = premise.search(/\b(siding|alternate track|secondary track|other track)\b/);
+  if (idx > 0 && sidingIndex >= 0) return premise.slice(sidingIndex);
+  if (idx === 0 && sidingIndex >= 0) return premise.slice(0, sidingIndex);
+  return premise;
 }
 
 export function parseChoiceTarget(level: PlayerLevel, choice: PlayerChoice, idx: number): ChoiceTargetInfo {
-  const text = `${choice.label} ${choice.preview} ${level.premise}`.toLowerCase();
+  const choiceText = `${choice.label} ${choice.preview}`;
+  const routeText = routeContext(level, idx);
+  const combined = `${choiceText} ${routeText}`;
 
-  if (text.includes('cockroach') || text.includes('roach') || text.includes('bug')) {
-    return { type: 'bug', count: 1 };
-  }
-  if (text.includes('butterfly') || text.includes('butterflies')) {
-    return { type: 'butterfly', count: 1 };
-  }
-  if (text.includes('robot') || text.includes('android') || text.includes('automaton')) {
-    return { type: 'robot', count: 1 };
-  }
-
-  // Check explicit numbers in preview or label
-  const preview = choice.preview.toLowerCase();
-  const label = choice.label.toLowerCase();
-  const combined = `${preview} ${label}`;
-
-  const digitMatch = combined.match(/(\d+)\s*(people|humans|persons|strangers|workers|passengers|patients|civilians|bystanders|children|adults)/i);
-  if (digitMatch && digitMatch[1]) {
-    const n = parseInt(digitMatch[1], 10);
-    if (!isNaN(n)) {
-      return { type: 'human', count: n };
-    }
+  // Resolve the casualty named in a forecast first. This keeps a safe alternative
+  // from borrowing a different route's species or count from the full premise.
+  const dyingSpecies = speciesDyingInPreview(choiceText);
+  if (dyingSpecies) {
+    return { type: dyingSpecies, count: Math.max(1, countFromText(choiceText) ?? 1) };
   }
 
-  const numWords: Record<string, number> = {
-    zero: 0,
-    no: 0,
-    nobody: 0,
-    one: 1,
-    lone: 1,
-    two: 2,
-    three: 3,
-    four: 4,
-    five: 5,
-    six: 6,
-    seven: 7,
-    eight: 8,
-    nine: 9,
-    ten: 10,
-    hundred: 100
-  };
+  const explicitSpecies = speciesFromText(choiceText);
+  const explicitCount = countFromText(choiceText);
 
-  const wordMatch = combined.match(/\b(five|four|three|two|one|lone|six|seven|eight|nine|ten|zero|nobody|no)\b\s*(people|humans|persons|strangers|workers|passengers|patients|civilians|bystanders|children|adults|die|dies|survive)?/i);
-  if (wordMatch && wordMatch[1]) {
-    const key = wordMatch[1].toLowerCase();
-    if (key in numWords) {
-      return { type: 'human', count: numWords[key] ?? 1 };
-    }
+  // Scene actions point at a mechanism or named object, not at a guessed victim.
+  if (choice.control === 'scene-action') {
+    const actionObject = objectKindFromText(choiceText) ?? objectKindFromActionTarget(level.layout.actionTarget);
+    if (level.layout.actionTarget === 'bridge-person') return { type: 'human', count: explicitCount ?? 1 };
+    if (actionObject) return { type: 'object', count: 0, objectKind: actionObject };
   }
 
-  // Template defaults if not explicitly specified
-  if (level.layout.template === 'fork2' || level.layout.template === 'fork3') {
-    return { type: 'human', count: idx === 0 ? 5 : 1 };
+  if (explicitSpecies && explicitSpecies !== 'human') {
+    return { type: explicitSpecies, count: Math.max(1, explicitCount ?? 1) };
   }
 
-  return { type: 'human', count: 1 };
+  const objectKind = objectKindFromText(choiceText);
+  if (objectKind && !dyingSpecies && choice.control !== 'scene-action') {
+    return { type: 'object', count: 0, objectKind };
+  }
+
+  if (!dyingSpecies && choice.control !== 'scene-action' && /\b(empty|unused|nothing else|nobody)\b/i.test(combined)) {
+    return { type: 'none', count: 0 };
+  }
+
+  const routeSpecies = speciesFromText(routeText) ?? explicitSpecies;
+  if (routeSpecies) {
+    return { type: routeSpecies, count: Math.max(1, explicitCount ?? countFromText(routeText) ?? 1) };
+  }
+
+  // A person is the safe visual fallback for an authored route that does not
+  // name a more specific public sprite. Never invent a group size.
+  return { type: 'human', count: Math.max(1, explicitCount ?? countFromText(routeText) ?? 1) };
 }
 
 export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) => void): SceneComponent {
@@ -289,8 +367,39 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     class: 'scene-switch-assembly',
     transform: 'translate(420, 325)'
   });
+  const switchHitArea = createSvgElement('rect', {
+    x: -30,
+    y: -36,
+    width: 60,
+    height: 72,
+    fill: 'transparent',
+    'pointer-events': 'all'
+  });
+  switchGroup.appendChild(switchHitArea);
   let switchLeverEl = createSwitchLeverGlyph(0);
   switchGroup.appendChild(switchLeverEl);
+  const isRouteSwitch = level.layout.actionTarget === 'rail-switch';
+  switchGroup.dataset.selectedChoice = level.defaultChoiceId;
+  if (isRouteSwitch && onSelectChoice) {
+    switchGroup.setAttribute('role', 'button');
+    switchGroup.setAttribute('tabindex', '0');
+    switchGroup.setAttribute('aria-label', 'Rail switch. Click to change the selected route.');
+    switchGroup.style.cursor = 'pointer';
+    const chooseNextRoute = () => {
+      const currentSlot = level.choices.findIndex((choice) => choice.id === switchGroup.dataset.selectedChoice);
+      const nextChoice = level.choices[(currentSlot + 1 + level.choices.length) % level.choices.length];
+      if (nextChoice) onSelectChoice(nextChoice.id);
+    };
+    switchGroup.addEventListener('click', chooseNextRoute);
+    switchGroup.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        chooseNextRoute();
+      }
+    });
+  } else if (!isRouteSwitch) {
+    switchGroup.setAttribute('display', 'none');
+  }
   svg.appendChild(switchGroup);
 
   // 5. Template Furniture (Footbridge, Loop siding, Console, Signs)
@@ -309,11 +418,8 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
   furnitureGroup.appendChild(pulseRing);
 
   let bridgeActorEl: SVGGElement | null = null;
-  let bridgeBloodEl: SVGGElement | null = null;
   let downstreamGroupEl: SVGGElement | null = null;
-  let downstreamBloodEl: SVGGElement | null = null;
   let loopTargetEl: SVGGElement | null = null;
-  let loopBloodEl: SVGGElement | null = null;
 
   if (level.layout.template === 'footbridge') {
     // Footbridge Stone Arch & Deck
@@ -371,12 +477,6 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     const choice0 = level.choices[0];
     const choice1 = level.choices[1];
 
-    // Blood splatter for bridge actor falling onto track
-    bridgeBloodEl = createBloodSplatterGlyph('human', 1);
-    bridgeBloodEl.setAttribute('transform', 'translate(550, 300) scale(0)');
-    bridgeBloodEl.setAttribute('opacity', '0');
-    svg.appendChild(bridgeBloodEl);
-
     // Actor standing on footbridge
     bridgeActorEl = createSvgElement('g', {
       transform: 'translate(550, 152)',
@@ -388,12 +488,6 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       bridgeActorEl.addEventListener('click', () => onSelectChoice(choice1.id));
     }
     furnitureGroup.appendChild(bridgeActorEl);
-
-    // Downstream 5-person group blood splatter & group
-    downstreamBloodEl = createBloodSplatterGlyph('human', 5);
-    downstreamBloodEl.setAttribute('transform', 'translate(780, 290) scale(0)');
-    downstreamBloodEl.setAttribute('opacity', '0');
-    svg.appendChild(downstreamBloodEl);
 
     downstreamGroupEl = createSvgElement('g', {
       transform: 'translate(780, 290)',
@@ -408,12 +502,6 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
   } else if (level.layout.template === 'loop') {
     const choice0 = level.choices[0];
     const choice1 = level.choices[1];
-
-    // Siding Loop Person blood & target
-    loopBloodEl = createBloodSplatterGlyph('human', 1);
-    loopBloodEl.setAttribute('transform', 'translate(650, 155) scale(0)');
-    loopBloodEl.setAttribute('opacity', '0');
-    svg.appendChild(loopBloodEl);
 
     loopTargetEl = createSvgElement('g', {
       transform: 'translate(650, 155)',
@@ -435,12 +523,6 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       bufferG.appendChild(createBufferStopGlyph());
       furnitureGroup.appendChild(bufferG);
     }
-
-    // Downstream group on main line
-    downstreamBloodEl = createBloodSplatterGlyph('human', 5);
-    downstreamBloodEl.setAttribute('transform', 'translate(860, 290) scale(0)');
-    downstreamBloodEl.setAttribute('opacity', '0');
-    svg.appendChild(downstreamBloodEl);
 
     downstreamGroupEl = createSvgElement('g', {
       transform: 'translate(860, 290)',
@@ -539,11 +621,11 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
 
   svg.appendChild(furnitureGroup);
 
-  // 6. Target Glyphs, Blood Splatters & Route Preview Plaques
+  // 6. Target glyphs and route preview plaques
   const targetsGroup = createSvgElement('g', { class: 'scene-targets' });
   const choiceVictimList: (SVGGElement | null)[] = [];
-  const choiceBloodList: SVGGElement[] = [];
   let impactSoundPlayed = false;
+  const usesDedicatedTargets = level.layout.template === 'footbridge' || level.layout.template === 'loop';
 
   level.choices.forEach((choice, idx) => {
     const targetInfo = parseChoiceTarget(level, choice, idx);
@@ -565,6 +647,8 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
         victimEl = createButterflyGlyph();
       } else if (targetInfo.type === 'robot') {
         victimEl = createRobotGlyph();
+      } else if (targetInfo.type === 'object') {
+        victimEl = createObjectGlyph(targetInfo.objectKind ?? 'object');
       } else if (targetInfo.count > 1) {
         victimEl = createGroupGlyph(targetInfo.count);
       } else if (targetInfo.count === 1) {
@@ -575,14 +659,6 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       }
     }
     choiceVictimList.push(victimEl);
-
-    // Blood splatter / casualty indicator (hidden initially)
-    const bloodG = createBloodSplatterGlyph(targetInfo.type, targetInfo.count);
-    bloodG.setAttribute('transform', `translate(${pt.x}, ${pt.y}) scale(0)`);
-    bloodG.setAttribute('opacity', '0');
-    bloodG.setAttribute('class', `blood-splatter blood-splatter-${choice.id}`);
-    choiceBloodList.push(bloodG);
-    svg.appendChild(bloodG);
 
     // High-visibility Route Plaque with interactive hover and click
     const plaqueG = createSvgElement('g', {
@@ -655,7 +731,9 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       targetG.addEventListener('click', () => onSelectChoice(choice.id));
     }
 
-    targetsGroup.appendChild(targetG);
+    if (!usesDedicatedTargets && victimEl) {
+      targetsGroup.appendChild(targetG);
+    }
     targetsGroup.appendChild(plaqueG);
   });
   svg.appendChild(targetsGroup);
@@ -683,10 +761,12 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     update(session: EngineSession, reducedMotion: boolean): void {
       const selectedSlot = level.choices.findIndex((c) => c.id === session.selectedChoiceId);
       const activeSlot = selectedSlot >= 0 ? selectedSlot : 0;
+      switchGroup.dataset.selectedChoice = level.choices[activeSlot]?.id ?? level.defaultChoiceId;
 
       // Update switch lever rotation
       switchGroup.innerHTML = '';
       switchLeverEl = createSwitchLeverGlyph(activeSlot);
+      switchGroup.appendChild(switchHitArea);
       switchGroup.appendChild(switchLeverEl);
 
       // Highlight selected rail branch
@@ -720,31 +800,18 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
           }
         }
 
-        // Casualty & Impact Blood Indicator
+        // Quiet, non-graphic consequence treatment. Victims fade in place;
+        // there is no blood, flattening, or collision close-up.
         const isImpacted = reducedMotion || v >= 0.55;
         if (isImpacted) {
           if (!impactSoundPlayed) {
             impactSoundPlayed = true;
             sound.playImpact();
           }
-
-          // Show blood splatter on struck track
-          choiceBloodList.forEach((bEl, bIdx) => {
-            if (bIdx === resolvedSlot) {
-              const pt = trackDef.targetPoints[bIdx] ?? { x: 780, y: 300 };
-              const bloodScale = reducedMotion ? 1 : Math.min(1.2, 0.5 + (v - 0.55) * 1.6);
-              bEl.setAttribute('transform', `translate(${pt.x}, ${pt.y}) scale(${bloodScale})`);
-              bEl.setAttribute('opacity', '1');
-            } else {
-              bEl.setAttribute('opacity', '0');
-            }
-          });
-
-          // Knock down / flatten victim glyph on struck track
           choiceVictimList.forEach((vEl, vIdx) => {
             if (vIdx === resolvedSlot && vEl) {
-              vEl.setAttribute('transform', 'rotate(85, 0, 15) translate(6, 12) scale(0.9, 0.4)');
-              vEl.style.filter = 'drop-shadow(0 2px 4px rgba(185, 28, 28, 0.6))';
+              vEl.style.opacity = reducedMotion ? '0.35' : '0.18';
+              vEl.style.filter = 'grayscale(0.85)';
             }
           });
 
@@ -754,19 +821,13 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
               impactCloud.setAttribute('transform', 'translate(550, 270) scale(1)');
               impactCloud.setAttribute('opacity', '1');
               if (bridgeActorEl) {
-                bridgeActorEl.setAttribute('transform', 'translate(550, 290) rotate(85) scale(0.9, 0.4)');
-              }
-              if (bridgeBloodEl) {
-                bridgeBloodEl.setAttribute('transform', 'translate(550, 300) scale(1)');
-                bridgeBloodEl.setAttribute('opacity', '1');
+                bridgeActorEl.style.opacity = '0.18';
+                bridgeActorEl.style.filter = 'grayscale(0.85)';
               }
             } else {
-              if (downstreamBloodEl) {
-                downstreamBloodEl.setAttribute('transform', 'translate(780, 290) scale(1)');
-                downstreamBloodEl.setAttribute('opacity', '1');
-              }
               if (downstreamGroupEl) {
-                downstreamGroupEl.setAttribute('transform', 'translate(780, 290) rotate(85) scale(0.9, 0.4)');
+                downstreamGroupEl.style.opacity = '0.18';
+                downstreamGroupEl.style.filter = 'grayscale(0.85)';
               }
             }
           }
@@ -774,20 +835,14 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
           // Loop impact
           if (level.layout.template === 'loop') {
             if (resolvedSlot === 1) {
-              if (loopBloodEl) {
-                loopBloodEl.setAttribute('transform', 'translate(650, 155) scale(1)');
-                loopBloodEl.setAttribute('opacity', '1');
-              }
               if (loopTargetEl) {
-                loopTargetEl.setAttribute('transform', 'translate(650, 155) rotate(85) scale(0.9, 0.4)');
+                loopTargetEl.style.opacity = '0.18';
+                loopTargetEl.style.filter = 'grayscale(0.85)';
               }
             } else {
-              if (downstreamBloodEl) {
-                downstreamBloodEl.setAttribute('transform', 'translate(860, 290) scale(1)');
-                downstreamBloodEl.setAttribute('opacity', '1');
-              }
               if (downstreamGroupEl) {
-                downstreamGroupEl.setAttribute('transform', 'translate(860, 290) rotate(85) scale(0.9, 0.4)');
+                downstreamGroupEl.style.opacity = '0.18';
+                downstreamGroupEl.style.filter = 'grayscale(0.85)';
               }
             }
           }
@@ -795,16 +850,24 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       } else {
         // Reset impact state if uncommitted/running
         impactSoundPlayed = false;
-        choiceBloodList.forEach((bEl) => bEl.setAttribute('opacity', '0'));
         choiceVictimList.forEach((vEl) => {
           if (vEl) {
-            vEl.removeAttribute('transform');
+            vEl.style.opacity = '';
             vEl.style.filter = '';
           }
         });
-        if (bridgeBloodEl) bridgeBloodEl.setAttribute('opacity', '0');
-        if (loopBloodEl) loopBloodEl.setAttribute('opacity', '0');
-        if (downstreamBloodEl) downstreamBloodEl.setAttribute('opacity', '0');
+        if (bridgeActorEl) {
+          bridgeActorEl.style.opacity = '';
+          bridgeActorEl.style.filter = '';
+        }
+        if (loopTargetEl) {
+          loopTargetEl.style.opacity = '';
+          loopTargetEl.style.filter = '';
+        }
+        if (downstreamGroupEl) {
+          downstreamGroupEl.style.opacity = '';
+          downstreamGroupEl.style.filter = '';
+        }
         impactCloud.setAttribute('opacity', '0');
         impactCloud.setAttribute('transform', 'translate(550, 270) scale(0)');
 

@@ -553,6 +553,45 @@ export function createRobotGlyph(): SVGGElement {
 }
 
 /**
+ * Small, text-labelled prop glyphs for non-human route targets. These keep
+ * action levels visually specific without pretending that an object is a
+ * person or a biological casualty.
+ */
+export function createObjectGlyph(kind = 'object'): SVGGElement {
+  const g = createSvgElement('g', { class: 'glyph-object' });
+  const card = createSvgElement('rect', {
+    x: -46,
+    y: -30,
+    width: 92,
+    height: 58,
+    rx: 9,
+    fill: '#fef3c7',
+    stroke: '#b45309',
+    'stroke-width': 2
+  });
+  const icon = createSvgElement('circle', {
+    cx: 0,
+    cy: -7,
+    r: 12,
+    fill: '#f59e0b',
+    stroke: '#92400e',
+    'stroke-width': 1.5
+  });
+  const label = createSvgElement('text', {
+    x: 0,
+    y: 19,
+    'text-anchor': 'middle',
+    fill: '#78350f',
+    'font-size': '9',
+    'font-weight': '700',
+    'font-family': 'system-ui, sans-serif'
+  });
+  label.textContent = kind.length > 17 ? `${kind.slice(0, 16)}…` : kind;
+  g.append(card, icon, label);
+  return g;
+}
+
+/**
  * Rail buffer stop / bumper for Level 42 independent loop stopping mechanism
  */
 export function createBufferStopGlyph(): SVGGElement {

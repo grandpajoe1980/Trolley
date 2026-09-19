@@ -59,13 +59,12 @@ export function createSummaryScreen(saveManager: SaveManager, callbacks: Summary
   `;
   metricsGrid.appendChild(scoreBlock);
 
-  // Total Raw Fatalities
+  // Combined fatalities
   const rawBlock = document.createElement('div');
   rawBlock.className = 'metric-item';
   rawBlock.innerHTML = `
-    <span class="metric-label">Total Biological Fatalities</span>
+    <span class="metric-label">Fatalities</span>
     <span class="metric-value raw-value">${metrics.rawDeaths}</span>
-    <span class="metric-detail">1 per human or insect</span>
   `;
   metricsGrid.appendChild(rawBlock);
 
