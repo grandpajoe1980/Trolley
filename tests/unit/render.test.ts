@@ -235,6 +235,104 @@ describe('Render and UI Layout Templates', () => {
     }
   });
 
+  it('renders the exact authored target counts and a matching scene theme for levels 1 through 28', () => {
+    const expectedThemes = [
+      'siding',
+      'cockroach-crossing',
+      'butterfly-crossing',
+      'crowd',
+      'platforms',
+      'crowd',
+      'porcelain-ducks',
+      'lever',
+      'workshop',
+      'medical',
+      'hat',
+      'passenger',
+      'wax-figure',
+      'robot',
+      'cockroach-crossing',
+      'name-tags',
+      'sleepers',
+      'collection',
+      'sidings',
+      'brake',
+      'badge',
+      'driver',
+      'automatic',
+      'net',
+      'net',
+      'remote',
+      'hand',
+      'jam'
+    ];
+    const expected: Array<Array<{ type: 'human' | 'bug' | 'butterfly' | 'robot' | 'object' | 'none'; count: number }>> = [
+      [{ type: 'human', count: 1 }, { type: 'none', count: 0 }],
+      [{ type: 'human', count: 1 }, { type: 'bug', count: 1 }],
+      [{ type: 'human', count: 1 }, { type: 'butterfly', count: 1 }],
+      [{ type: 'human', count: 5 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 1 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 2 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 1 }, { type: 'object', count: 0 }],
+      [{ type: 'human', count: 1 }, { type: 'object', count: 0 }],
+      [{ type: 'human', count: 2 }, { type: 'object', count: 0 }],
+      [{ type: 'human', count: 3 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 1 }, { type: 'human', count: 2 }],
+      [{ type: 'human', count: 1 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 1 }, { type: 'object', count: 0 }],
+      [{ type: 'human', count: 1 }, { type: 'robot', count: 1 }],
+      [{ type: 'human', count: 1 }, { type: 'bug', count: 20 }],
+      [{ type: 'human', count: 2 }, { type: 'human', count: 3 }],
+      [{ type: 'human', count: 1 }, { type: 'human', count: 2 }],
+      [{ type: 'human', count: 1 }, { type: 'object', count: 0 }],
+      [{ type: 'human', count: 4 }, { type: 'human', count: 2 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 5 }, { type: 'human', count: 1 }, { type: 'object', count: 0 }],
+      [{ type: 'human', count: 5 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 5 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 1 }, { type: 'human', count: 5 }],
+      [{ type: 'object', count: 0 }, { type: 'human', count: 5 }],
+      [{ type: 'human', count: 5 }, { type: 'object', count: 0 }],
+      [{ type: 'human', count: 5 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 5 }, { type: 'human', count: 1 }],
+      [{ type: 'human', count: 3 }, { type: 'human', count: 1 }]
+    ];
+
+    for (let id = 1; id <= 28; id += 1) {
+      const playerLevel = getPlayerLevel(id)!;
+      const scene = createScene(playerLevel);
+      expect(scene.element.querySelector('.scene-theme-prop')?.getAttribute('data-theme')).toBe(expectedThemes[id - 1]);
+      expect(scene.element.querySelector('.scene-theme-connector')).not.toBeNull();
+
+      playerLevel.choices.forEach((choice, index) => {
+        const target = parseChoiceTarget(playerLevel, choice, index);
+        const expectedTarget = expected[id - 1]![index]!;
+        expect(target, `level ${id} choice ${choice.id}`).toMatchObject(expectedTarget);
+
+        const targetElement = scene.element.querySelector(`.target-glyph-${choice.id}`);
+        if (!targetElement) {
+          expect(expectedTarget.type).toBe('none');
+          return;
+        }
+        const spriteSelector =
+          expectedTarget.type === 'human'
+            ? '.glyph-person'
+            : expectedTarget.type === 'bug'
+              ? '.glyph-cockroach'
+              : expectedTarget.type === 'butterfly'
+                ? '.glyph-butterfly'
+                : expectedTarget.type === 'robot'
+                  ? '.glyph-robot'
+                  : null;
+        if (spriteSelector) {
+          expect(targetElement.querySelectorAll(spriteSelector).length).toBe(expectedTarget.count);
+        } else {
+          expect(targetElement.querySelector('.glyph-person, .glyph-cockroach, .glyph-butterfly, .glyph-robot')).toBeNull();
+        }
+      });
+      scene.destroy();
+    }
+  });
+
   it('uses quiet fade treatment and a clickable physical switch during resolution', () => {
     const pLvl4 = getPlayerLevel(4)!;
     const rawLvl4 = getLevel(4)!;

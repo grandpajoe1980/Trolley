@@ -408,70 +408,128 @@ export function createButterflyGlyph(): SVGGElement {
   return g;
 }
 
+type GroupGlyphKind = 'human' | 'bug' | 'butterfly' | 'robot';
+
+interface GroupPlacement {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+function groupPlacements(count: number, kind: GroupGlyphKind): GroupPlacement[] {
+  const safeCount = Math.max(2, Math.floor(count));
+
+  // Keep small groups readable and unmistakably countable. Larger insect
+  // groups use a compact grid so twenty insects still means twenty insects,
+  // rather than one representative sprite plus an unexplained multiplier.
+  if (safeCount === 2) return [{ x: -18, y: 2, scale: 0.82 }, { x: 18, y: 2, scale: 0.82 }];
+  if (safeCount === 3) {
+    return [
+      { x: -24, y: 4, scale: 0.76 },
+      { x: 0, y: -2, scale: 0.86 },
+      { x: 24, y: 4, scale: 0.76 }
+    ];
+  }
+  if (safeCount === 4) {
+    return [
+      { x: -22, y: -1, scale: 0.7 },
+      { x: 22, y: -1, scale: 0.7 },
+      { x: -11, y: 12, scale: 0.7 },
+      { x: 11, y: 12, scale: 0.7 }
+    ];
+  }
+  if (safeCount === 5) {
+    return [
+      { x: -24, y: 2, scale: 0.66 },
+      { x: 0, y: -5, scale: 0.78 },
+      { x: 24, y: 2, scale: 0.66 },
+      { x: -12, y: 14, scale: 0.7 },
+      { x: 12, y: 14, scale: 0.7 }
+    ];
+  }
+
+  const columns = Math.min(5, Math.ceil(Math.sqrt(safeCount)));
+  const rows = Math.ceil(safeCount / columns);
+  const spacing = kind === 'human' ? 25 : 19;
+  const scale = kind === 'human' ? 0.52 : 0.42;
+  const placements: GroupPlacement[] = [];
+  for (let index = 0; index < safeCount; index += 1) {
+    const row = Math.floor(index / columns);
+    const col = index % columns;
+    const rowCount = Math.min(columns, safeCount - row * columns);
+    placements.push({
+      x: (col - (rowCount - 1) / 2) * spacing,
+      y: (row - (rows - 1) / 2) * (kind === 'human' ? 24 : 18),
+      scale
+    });
+  }
+  return placements;
+}
+
+function makeGroupChild(kind: GroupGlyphKind, index: number): SVGGElement {
+  if (kind === 'bug') return createCockroachGlyph();
+  if (kind === 'butterfly') return createButterflyGlyph();
+  if (kind === 'robot') return createRobotGlyph();
+  const colors = ['#0284c7', '#0ea5e9', '#2563eb', '#1d4ed8', '#1e40af'];
+  return createPersonGlyph(colors[index % colors.length]);
+}
+
 /**
- * Group of people with explicit multiplier badge
+ * Exact-count group glyph. Every visible child represents one member of the
+ * group; the badge reinforces the count for larger scenes without replacing
+ * the individual sprites.
  */
-export function createGroupGlyph(count: number): SVGGElement {
-  const g = createSvgElement('g', { class: 'glyph-group' });
+export function createCreatureGroupGlyph(kind: GroupGlyphKind, count: number): SVGGElement {
+  const safeCount = Math.max(2, Math.floor(count));
+  const g = createSvgElement('g', {
+    class: `glyph-group glyph-group-${kind}`,
+    'data-count': safeCount,
+    'aria-label': `${safeCount} ${kind === 'human' ? 'people' : `${kind}s`}`
+  });
 
   const shadow = createSvgElement('ellipse', {
     cx: 0,
-    cy: 20,
-    rx: 26,
-    ry: 6,
+    cy: safeCount > 5 ? 31 : 25,
+    rx: kind === 'human' ? Math.min(42, 18 + safeCount * 3) : Math.min(44, 18 + safeCount * 2),
+    ry: 5,
     fill: 'rgba(0,0,0,0.2)'
   });
   g.appendChild(shadow);
 
-  // Tiered silhouettes
-  const p1 = createPersonGlyph('#0284c7');
-  p1.setAttribute('transform', 'translate(-16, -2) scale(0.85)');
+  groupPlacements(safeCount, kind).forEach((placement, index) => {
+    const child = makeGroupChild(kind, index);
+    child.setAttribute('transform', `translate(${placement.x}, ${placement.y}) scale(${placement.scale})`);
+    g.appendChild(child);
+  });
 
-  const p2 = createPersonGlyph('#0ea5e9');
-  p2.setAttribute('transform', 'translate(16, -2) scale(0.85)');
-
-  const p3 = createPersonGlyph('#2563eb');
-  p3.setAttribute('transform', 'translate(-8, 3) scale(0.95)');
-
-  const p4 = createPersonGlyph('#1d4ed8');
-  p4.setAttribute('transform', 'translate(8, 3) scale(0.95)');
-
-  const pCenter = createPersonGlyph('#1e40af');
-  pCenter.setAttribute('transform', 'translate(0, 6) scale(1)');
-
-  g.appendChild(p1);
-  g.appendChild(p2);
-  g.appendChild(p3);
-  g.appendChild(p4);
-  g.appendChild(pCenter);
-
-  // Multiplier plaque
   const badge = createSvgElement('rect', {
     x: -24,
-    y: 22,
+    y: 31,
     width: 48,
     height: 20,
     rx: 5,
     fill: '#0f172a',
-    stroke: '#38bdf8',
+    stroke: kind === 'human' ? '#38bdf8' : '#fbbf24',
     'stroke-width': 1.5,
     filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))'
   });
   const text = createSvgElement('text', {
     x: 0,
-    y: 36,
+    y: 45,
     'text-anchor': 'middle',
-    fill: '#38bdf8',
+    fill: kind === 'human' ? '#38bdf8' : '#fbbf24',
     'font-size': '13',
     'font-weight': '800',
     'font-family': 'system-ui, sans-serif'
   });
-  text.textContent = `×${count}`;
-
-  g.appendChild(badge);
-  g.appendChild(text);
-
+  text.textContent = `×${safeCount}`;
+  g.append(badge, text);
   return g;
+}
+
+/** Backwards-compatible human group factory used by dedicated templates. */
+export function createGroupGlyph(count: number): SVGGElement {
+  return createCreatureGroupGlyph('human', count);
 }
 
 /**
@@ -588,6 +646,313 @@ export function createObjectGlyph(kind = 'object'): SVGGElement {
   });
   label.textContent = kind.length > 17 ? `${kind.slice(0, 16)}…` : kind;
   g.append(card, icon, label);
+  return g;
+}
+
+/**
+ * A small scene prop that makes the authored thought experiment legible at a
+ * glance. The prop is intentionally separate from the casualty glyphs: it
+ * gives each level a visual subject without leaking outcome-only information.
+ */
+export function createThemePropGlyph(theme: string): SVGGElement {
+  const g = createSvgElement('g', {
+    class: 'scene-theme-prop',
+    'data-theme': theme
+  });
+  const panel = createSvgElement('rect', {
+    x: -76,
+    y: -48,
+    width: 152,
+    height: 96,
+    rx: 12,
+    fill: '#ffffff',
+    'fill-opacity': '0.88',
+    stroke: '#bfdbfe',
+    'stroke-width': 2,
+    filter: 'drop-shadow(0 4px 8px rgba(15,23,42,0.12))'
+  });
+  const railLine = createSvgElement('path', {
+    d: 'M -62,30 L 62,30',
+    stroke: '#94a3b8',
+    'stroke-width': 3,
+    'stroke-dasharray': '4,5'
+  });
+  g.append(panel, railLine);
+
+  const label = createSvgElement('text', {
+    x: 0,
+    y: 42,
+    'text-anchor': 'middle',
+    fill: '#334155',
+    'font-size': '8',
+    'font-weight': '800',
+    'letter-spacing': '0.6',
+    'font-family': 'system-ui, sans-serif'
+  });
+
+  const addLabel = (text: string): void => {
+    label.textContent = text.toUpperCase();
+    g.appendChild(label);
+  };
+  const addTag = (text: string, fill = '#0f172a'): void => {
+    const tag = createSvgElement('text', {
+      x: 0,
+      y: -28,
+      'text-anchor': 'middle',
+      fill,
+      'font-size': '9',
+      'font-weight': '700',
+      'font-family': 'system-ui, sans-serif'
+    });
+    tag.textContent = text;
+    g.appendChild(tag);
+  };
+
+  switch (theme) {
+    case 'cockroach-crossing': {
+      const sign = createSvgElement('circle', { cx: 0, cy: -2, r: 19, fill: '#78350f', stroke: '#451a03', 'stroke-width': 2 });
+      const bug = createCockroachGlyph();
+      bug.setAttribute('transform', 'translate(0, -2) scale(0.7)');
+      g.append(sign, bug);
+      addTag('LIVING CROSSING', '#78350f');
+      addLabel('COCKROACHES');
+      break;
+    }
+    case 'butterfly-crossing': {
+      const butterfly = createButterflyGlyph();
+      butterfly.setAttribute('transform', 'translate(0, 0) scale(0.72)');
+      g.appendChild(butterfly);
+      addTag('WILDLIFE CROSSING', '#9a3412');
+      addLabel('BUTTERFLY');
+      break;
+    }
+    case 'porcelain-ducks': {
+      [-24, 0, 24].forEach((x, index) => {
+        const duck = createSvgElement('g', { transform: `translate(${x}, ${index === 1 ? -4 : 1}) scale(0.55)` });
+        duck.append(
+          createSvgElement('ellipse', { cx: 0, cy: 10, rx: 18, ry: 12, fill: '#fef3c7', stroke: '#b45309', 'stroke-width': 2 }),
+          createSvgElement('circle', { cx: -8, cy: -4, r: 10, fill: '#fde68a', stroke: '#b45309', 'stroke-width': 2 }),
+          createSvgElement('path', { d: 'M -17,-4 L -26,0 L -17,3 Z', fill: '#f97316', stroke: '#9a3412', 'stroke-width': 1.5 }),
+          createSvgElement('circle', { cx: -10, cy: -7, r: 1.5, fill: '#0f172a' })
+        );
+        g.appendChild(duck);
+      });
+      addTag('FRAGILE COLLECTION', '#92400e');
+      addLabel('PORCELAIN DUCKS');
+      break;
+    }
+    case 'workshop': {
+      const workbench = createSvgElement('rect', { x: -38, y: 4, width: 76, height: 13, rx: 2, fill: '#92400e', stroke: '#451a03', 'stroke-width': 2 });
+      const legL = createSvgElement('line', { x1: -28, y1: 17, x2: -34, y2: 30, stroke: '#451a03', 'stroke-width': 4 });
+      const legR = createSvgElement('line', { x1: 28, y1: 17, x2: 34, y2: 30, stroke: '#451a03', 'stroke-width': 4 });
+      const gear = createSvgElement('circle', { cx: -10, cy: -12, r: 13, fill: '#cbd5e1', stroke: '#475569', 'stroke-width': 3, 'stroke-dasharray': '4,3' });
+      const hammer = createSvgElement('path', { d: 'M 15,-25 L 15,5 M 5,-25 L 25,-25', stroke: '#475569', 'stroke-width': 5, 'stroke-linecap': 'round' });
+      g.append(workbench, legL, legR, gear, hammer);
+      addTag('LIVELIHOOD AT RISK', '#92400e');
+      addLabel('WORKSHOP');
+      break;
+    }
+    case 'lever': {
+      const console = createSvgElement('rect', { x: -34, y: -10, width: 68, height: 34, rx: 6, fill: '#1e293b', stroke: '#38bdf8', 'stroke-width': 2 });
+      const lever = createSvgElement('path', { d: 'M 0,10 L 18,-25', stroke: '#f8fafc', 'stroke-width': 5, 'stroke-linecap': 'round' });
+      const knob = createSvgElement('circle', { cx: 18, cy: -25, r: 7, fill: '#22c55e', stroke: '#bbf7d0', 'stroke-width': 2 });
+      const display = createSvgElement('text', { x: -20, y: 11, fill: '#fef08a', 'font-size': '11', 'font-weight': '800', 'font-family': 'monospace' });
+      display.textContent = '$100';
+      g.append(console, lever, knob, display);
+      addTag('DECISION CONSOLE', '#0369a1');
+      addLabel('PAY OR HOLD');
+      break;
+    }
+    case 'wax-figure': {
+      const head = createSvgElement('circle', { cx: 0, cy: -17, r: 12, fill: '#f8d7b5', stroke: '#92400e', 'stroke-width': 2 });
+      const torso = createSvgElement('path', { d: 'M -20,25 Q -18,-5 0,-4 Q 18,-5 20,25 Z', fill: '#f59e0b', stroke: '#92400e', 'stroke-width': 2 });
+      const plaque = createSvgElement('rect', { x: -28, y: 5, width: 56, height: 12, rx: 2, fill: '#fef3c7', stroke: '#b45309', 'stroke-width': 1 });
+      g.append(head, torso, plaque);
+      addTag('MUSEUM DISPLAY', '#92400e');
+      addLabel('WAX FIGURE');
+      break;
+    }
+    case 'robot': {
+      const robot = createRobotGlyph();
+      robot.setAttribute('transform', 'translate(0, 0) scale(0.9)');
+      const circuit = createSvgElement('path', { d: 'M -46,-8 L -30,-8 L -24,-18 M 46,-8 L 30,-8 L 24,-18', fill: 'none', stroke: '#38bdf8', 'stroke-width': 2 });
+      g.append(circuit, robot);
+      addTag('AUTOMATON DECLARATION', '#0369a1');
+      addLabel('ROBOT');
+      break;
+    }
+    case 'name-tags': {
+      ['A', 'B', 'C'].forEach((letter, index) => {
+        const tag = createSvgElement('rect', { x: -38 + index * 26, y: -13 + (index % 2) * 8, width: 22, height: 28, rx: 3, fill: index === 1 ? '#dbeafe' : '#fef3c7', stroke: '#64748b', 'stroke-width': 1.5 });
+        const tagText = createSvgElement('text', { x: -27 + index * 26, y: 5 + (index % 2) * 8, 'text-anchor': 'middle', fill: '#1e3a8a', 'font-size': '12', 'font-weight': '800', 'font-family': 'system-ui, sans-serif' });
+        tagText.textContent = letter;
+        g.append(tag, tagText);
+      });
+      addTag('IDENTITY COUNTS', '#1d4ed8');
+      addLabel('NAME TAGS');
+      break;
+    }
+    case 'sleepers': {
+      const bed = createSvgElement('rect', { x: -42, y: 4, width: 84, height: 20, rx: 4, fill: '#334155', stroke: '#0f172a', 'stroke-width': 2 });
+      const pillow = createSvgElement('ellipse', { cx: -23, cy: 0, rx: 14, ry: 8, fill: '#e0f2fe', stroke: '#64748b', 'stroke-width': 1.5 });
+      const z = createSvgElement('text', { x: 25, y: -11, fill: '#2563eb', 'font-size': '15', 'font-weight': '800', 'font-family': 'system-ui, sans-serif' });
+      z.textContent = 'Z Z';
+      g.append(bed, pillow, z);
+      addTag('RESTING TRACK', '#1d4ed8');
+      addLabel('SLEEPERS');
+      break;
+    }
+    case 'medical': {
+      const monitor = createSvgElement('rect', { x: -35, y: -22, width: 70, height: 46, rx: 6, fill: '#f8fafc', stroke: '#64748b', 'stroke-width': 2 });
+      const screen = createSvgElement('rect', { x: -25, y: -13, width: 50, height: 18, rx: 2, fill: '#dcfce7', stroke: '#16a34a', 'stroke-width': 1.5 });
+      const pulse = createSvgElement('path', { d: 'M -20,-4 L -11,-4 L -6,-11 L 1,1 L 7,-7 L 19,-7', fill: 'none', stroke: '#16a34a', 'stroke-width': 2 });
+      const crossV = createSvgElement('rect', { x: -4, y: 9, width: 8, height: 13, fill: '#ef4444' });
+      const crossH = createSvgElement('rect', { x: -10, y: 13, width: 20, height: 6, fill: '#ef4444' });
+      g.append(monitor, screen, pulse, crossV, crossH);
+      addTag('HEALTH STATUS', '#15803d');
+      addLabel('MEDICAL CLAIM');
+      break;
+    }
+    case 'hat': {
+      const brim = createSvgElement('ellipse', { cx: 0, cy: 13, rx: 39, ry: 8, fill: '#1e3a8a', stroke: '#172554', 'stroke-width': 2 });
+      const crown = createSvgElement('path', { d: 'M -25,10 L -19,-24 Q 0,-34 19,-24 L 25,10 Z', fill: '#2563eb', stroke: '#172554', 'stroke-width': 2 });
+      const band = createSvgElement('path', { d: 'M -22,-2 Q 0,4 22,-2', fill: 'none', stroke: '#facc15', 'stroke-width': 4 });
+      g.append(brim, crown, band);
+      addTag('STATUS SYMBOL', '#1d4ed8');
+      addLabel('FAMOUS HAT');
+      break;
+    }
+    case 'passenger': {
+      const bubble = createSvgElement('path', { d: 'M -46,-25 Q -46,-41 -30,-41 L 34,-41 Q 50,-41 50,-25 L 50,-4 Q 50,10 34,10 L 12,10 L 0,23 L 1,10 L -30,10 Q -46,10 -46,-4 Z', fill: '#ffffff', stroke: '#64748b', 'stroke-width': 2 });
+      const dots = createSvgElement('text', { x: 2, y: -12, 'text-anchor': 'middle', fill: '#475569', 'font-size': '18', 'font-weight': '900', 'font-family': 'system-ui, sans-serif' });
+      dots.textContent = '!?';
+      g.append(bubble, dots);
+      addTag('PERSONAL CONFLICT', '#475569');
+      addLabel('PASSENGER');
+      break;
+    }
+    case 'platforms': {
+      const platformA = createSvgElement('rect', { x: -48, y: -1, width: 38, height: 20, rx: 3, fill: '#dbeafe', stroke: '#2563eb', 'stroke-width': 2 });
+      const platformB = createSvgElement('rect', { x: 10, y: -1, width: 38, height: 20, rx: 3, fill: '#dcfce7', stroke: '#16a34a', 'stroke-width': 2 });
+      const signA = createSvgElement('text', { x: -29, y: 13, 'text-anchor': 'middle', fill: '#1d4ed8', 'font-size': '14', 'font-weight': '900', 'font-family': 'system-ui, sans-serif' });
+      signA.textContent = 'A';
+      const signB = createSvgElement('text', { x: 29, y: 13, 'text-anchor': 'middle', fill: '#15803d', 'font-size': '14', 'font-weight': '900', 'font-family': 'system-ui, sans-serif' });
+      signB.textContent = 'B';
+      const balance = createSvgElement('path', { d: 'M 0,-28 L 0,23 M -27,-24 L 27,-24 M -27,-24 L -39,-6 M 27,-24 L 39,-6', stroke: '#475569', 'stroke-width': 3, 'stroke-linecap': 'round' });
+      g.append(platformA, platformB, signA, signB, balance);
+      addTag('EQUAL CLAIMS', '#1d4ed8');
+      addLabel('TWO PLATFORMS');
+      break;
+    }
+    case 'hand': {
+      const palm = createSvgElement('path', { d: 'M -20,21 Q -30,8 -25,-2 L -21,-26 Q -20,-32 -15,-31 Q -10,-30 -11,-24 L -11,-8 L -7,-33 Q -6,-39 0,-37 Q 4,-36 3,-30 L 1,-8 L 6,-32 Q 7,-37 12,-35 Q 16,-33 14,-27 L 9,-7 L 15,-25 Q 17,-30 21,-28 Q 26,-25 23,-19 L 14,12 Q 9,27 -5,29 Z', fill: '#fed7aa', stroke: '#c2410c', 'stroke-width': 2 });
+      const motion = createSvgElement('path', { d: 'M 30,-28 Q 45,-14 32,2 M 40,-38 Q 57,-19 43,2', fill: 'none', stroke: '#2563eb', 'stroke-width': 3, 'stroke-linecap': 'round' });
+      g.append(palm, motion);
+      addTag('INTENT IN MOTION', '#1d4ed8');
+      addLabel('YOUR HAND');
+      break;
+    }
+    case 'crowd': {
+      [-25, 0, 25].forEach((x, index) => {
+        const person = createPersonGlyph(['#0284c7', '#2563eb', '#ea580c'][index]);
+        person.setAttribute('transform', `translate(${x}, ${index === 1 ? -2 : 3}) scale(0.7)`);
+        g.appendChild(person);
+      });
+      addTag('COMPETING LIVES', '#1d4ed8');
+      addLabel('PEOPLE ON TRACK');
+      break;
+    }
+    case 'collection': {
+      const shelf = createSvgElement('rect', { x: -45, y: 14, width: 90, height: 7, fill: '#78350f', stroke: '#451a03', 'stroke-width': 1.5 });
+      const items = [-27, -9, 9, 27].map((x) => createSvgElement('rect', { x: x - 6, y: -11, width: 12, height: 25, rx: 2, fill: '#f59e0b', stroke: '#92400e', 'stroke-width': 1.5 }));
+      g.append(shelf, ...items);
+      addTag('PERSONAL ARCHIVE', '#92400e');
+      addLabel('COLLECTION');
+      break;
+    }
+    case 'brake': {
+      const brake = createSvgElement('circle', { cx: 0, cy: 0, r: 25, fill: '#dc2626', stroke: '#7f1d1d', 'stroke-width': 3 });
+      const handle = createSvgElement('line', { x1: 0, y1: 0, x2: 0, y2: -27, stroke: '#fef2f2', 'stroke-width': 5, 'stroke-linecap': 'round' });
+      const labelText = createSvgElement('text', { x: 0, y: 6, 'text-anchor': 'middle', fill: '#ffffff', 'font-size': '10', 'font-weight': '900', 'font-family': 'system-ui, sans-serif' });
+      labelText.textContent = 'STOP';
+      g.append(brake, handle, labelText);
+      addTag('EMERGENCY SEAL', '#b91c1c');
+      addLabel('BRAKE');
+      break;
+    }
+    case 'net': {
+      const net = createSvgElement('path', { d: 'M -42,-22 L 42,-22 L 30,24 L -30,24 Z', fill: 'none', stroke: '#0f766e', 'stroke-width': 3 });
+      for (let x = -30; x <= 30; x += 15) net.appendChild(createSvgElement('line', { x1: x, y1: -22, x2: x * 0.7, y2: 24, stroke: '#14b8a6', 'stroke-width': 1.2 }));
+      for (let y = -10; y <= 12; y += 11) net.appendChild(createSvgElement('line', { x1: -42 + (y + 22) * 0.26, y1: y, x2: 42 - (y + 22) * 0.26, y2: y, stroke: '#14b8a6', 'stroke-width': 1.2 }));
+      g.appendChild(net);
+      addTag('SAFETY EQUIPMENT', '#0f766e');
+      addLabel('RESCUE NET');
+      break;
+    }
+    case 'rail-switch':
+    case 'siding':
+    case 'sidings': {
+      const fork = createSvgElement('path', { d: 'M -42,18 L 0,0 L 42,-18 M 0,0 L 42,18', fill: 'none', stroke: '#475569', 'stroke-width': 5, 'stroke-linecap': 'round' });
+      const marker = createSvgElement('circle', { cx: 0, cy: 0, r: 8, fill: '#2563eb', stroke: '#dbeafe', 'stroke-width': 2 });
+      g.append(fork, marker);
+      addTag('ROUTE MAP', '#1d4ed8');
+      addLabel(theme === 'sidings' ? 'THREE SIDINGS' : 'EMPTY SIDING');
+      break;
+    }
+    case 'badge': {
+      const badge = createSvgElement('path', { d: 'M -21,-18 L 21,-18 L 17,18 L 0,29 L -17,18 Z', fill: '#fef3c7', stroke: '#b45309', 'stroke-width': 2 });
+      const star = createSvgElement('text', { x: 0, y: 9, 'text-anchor': 'middle', fill: '#b45309', 'font-size': '22', 'font-weight': '900', 'font-family': 'system-ui, sans-serif' });
+      star.textContent = '★';
+      g.append(badge, star);
+      addTag('DUTY MARKER', '#92400e');
+      addLabel('BYSTANDER BADGE');
+      break;
+    }
+    case 'driver': {
+      const seat = createSvgElement('rect', { x: -30, y: -14, width: 60, height: 38, rx: 7, fill: '#1e293b', stroke: '#64748b', 'stroke-width': 2 });
+      const wheel = createSvgElement('circle', { cx: 0, cy: 3, r: 16, fill: 'none', stroke: '#f8fafc', 'stroke-width': 4 });
+      const hub = createSvgElement('circle', { cx: 0, cy: 3, r: 4, fill: '#38bdf8' });
+      g.append(seat, wheel, hub);
+      addTag('CONTROL CAB', '#0369a1');
+      addLabel('DRIVER\'S SEAT');
+      break;
+    }
+    case 'automatic': {
+      const chip = createSvgElement('rect', { x: -25, y: -18, width: 50, height: 36, rx: 5, fill: '#1e293b', stroke: '#38bdf8', 'stroke-width': 2 });
+      const trace = createSvgElement('path', { d: 'M -15,0 L -7,0 L -3,-9 L 5,9 L 10,0 L 17,0', fill: 'none', stroke: '#22c55e', 'stroke-width': 2 });
+      const node = createSvgElement('circle', { cx: 0, cy: 0, r: 4, fill: '#facc15' });
+      g.append(chip, trace, node);
+      addTag('PRESET ROUTE', '#0369a1');
+      addLabel('AUTOMATION');
+      break;
+    }
+    case 'remote': {
+      const remote = createSvgElement('rect', { x: -19, y: -29, width: 38, height: 58, rx: 8, fill: '#334155', stroke: '#0f172a', 'stroke-width': 2 });
+      const screen = createSvgElement('rect', { x: -11, y: -20, width: 22, height: 12, rx: 2, fill: '#86efac' });
+      const button = createSvgElement('circle', { cx: 0, cy: 10, r: 8, fill: '#ef4444', stroke: '#fecaca', 'stroke-width': 2 });
+      g.append(remote, screen, button);
+      addTag('DISTANT CONTROL', '#b91c1c');
+      addLabel('REMOTE');
+      break;
+    }
+    case 'jam': {
+      const crate = createSvgElement('rect', { x: -35, y: -17, width: 28, height: 28, fill: '#b45309', stroke: '#78350f', 'stroke-width': 2, transform: 'rotate(-12 -21 -3)' });
+      const crate2 = createSvgElement('rect', { x: 5, y: -12, width: 32, height: 32, fill: '#d97706', stroke: '#78350f', 'stroke-width': 2, transform: 'rotate(15 21 4)' });
+      const slash = createSvgElement('path', { d: 'M -35,-25 L 35,25', stroke: '#ef4444', 'stroke-width': 5, 'stroke-linecap': 'round' });
+      g.append(crate, crate2, slash);
+      addTag('SELF-CAUSED OBSTRUCTION', '#b91c1c');
+      addLabel('TRACK JAM');
+      break;
+    }
+    default: {
+      const marker = createSvgElement('circle', { cx: 0, cy: 0, r: 21, fill: '#dbeafe', stroke: '#2563eb', 'stroke-width': 2 });
+      const rail = createSvgElement('path', { d: 'M -13,-10 L 13,10 M 13,-10 L -13,10', stroke: '#1d4ed8', 'stroke-width': 3 });
+      g.append(marker, rail);
+      addTag('TRACK SCENARIO', '#1d4ed8');
+      addLabel('DECISION POINT');
+      break;
+    }
+  }
   return g;
 }
 

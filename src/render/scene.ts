@@ -4,7 +4,7 @@ import {
   createBufferStopGlyph,
   createButterflyGlyph,
   createCockroachGlyph,
-  createGroupGlyph,
+  createCreatureGroupGlyph,
   createImpactCloudGlyph,
   createObjectGlyph,
   createPersonGlyph,
@@ -12,6 +12,7 @@ import {
   createRobotGlyph,
   createSvgElement,
   createSwitchLeverGlyph,
+  createThemePropGlyph,
   createTrolleyGlyph
 } from './glyphs';
 import {
@@ -61,13 +62,28 @@ const NUMBER_WORDS: Record<string, number> = {
 function countFromText(text: string): number | null {
   const normalized = text.toLowerCase();
   const countMatch = normalized.match(
-    /\b(\d+|zero|no|nobody|one|lone|both|two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\b\s+(?:people|person|humans|human|persons|strangers|workers|passengers|patients|civilians|bystanders|children|adults|cockroaches|roaches|butterflies|die|dies|died|death|deaths|survive|survives|on|face|are)\b/i
+    /\b(\d+|zero|no|nobody|one|lone|both|two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\b(?:\s+[a-z-]+){0,2}\s+(?:people|person|humans|human|persons|strangers|workers|passengers|patients|civilians|bystanders|children|adults|cockroaches|roaches|butterflies|die|dies|died|death|deaths|survive|survives|on|face|are)\b/i
   );
   if (countMatch?.[1]) {
     const token = countMatch[1].toLowerCase();
     return NUMBER_WORDS[token] ?? Number.parseInt(token, 10);
   }
   if (/\b(the|a|an|one)\s+(human|person|passenger|patient|worker|stranger|celebrity|driver)\b/.test(normalized)) {
+    return 1;
+  }
+  return null;
+}
+
+function deathCountFromText(text: string): number | null {
+  const normalized = text.toLowerCase();
+  const deathIndex = normalized.search(/\b(die|dies|died|death|deaths|killed|killing)\b/);
+  if (deathIndex < 0) return null;
+  const beforeDeath = normalized.slice(0, deathIndex);
+  const countToken = beforeDeath.match(
+    /\b(\d+|zero|no|nobody|one|lone|both|two|three|four|five|six|seven|eight|nine|ten|twenty|hundred)\b(?:\s+[a-z-]+){0,2}\s*$/i
+  )?.[1];
+  if (countToken) return NUMBER_WORDS[countToken] ?? Number.parseInt(countToken, 10);
+  if (/\b(the|a|an|one|lone|ill)\s+(human|person|passenger|patient|worker|stranger|celebrity|driver)\b/.test(beforeDeath)) {
     return 1;
   }
   return null;
@@ -122,10 +138,65 @@ function objectKindFromActionTarget(actionTarget: PlayerLevel['layout']['actionT
   }
 }
 
+function sceneThemeFromLevel(level: PlayerLevel): string {
+  const text = `${level.title} ${level.premise} ${level.choices.map((choice) => `${choice.label} ${choice.preview}`).join(' ')}`.toLowerCase();
+  if (/butterfl/.test(text)) return 'butterfly-crossing';
+  if (/cockroach|cockroaches|roach/.test(text)) return 'cockroach-crossing';
+  if (/porcelain|duck/.test(text)) return 'porcelain-ducks';
+  if (/workshop|livelihood/.test(text)) return 'workshop';
+  if (/\$100|pay|lever|money/.test(text)) return 'lever';
+  if (/wax philosopher|wax figure/.test(text)) return 'wax-figure';
+  if (/robot|android|automaton/.test(text)) return 'robot';
+  if (/name tag|named people|unidentified/.test(text)) return 'name-tags';
+  if (/sleep|sleepy|awake/.test(text)) return 'sleepers';
+  if (/illness|ill person|terminal|patient|hospital|medical/.test(text)) return 'medical';
+  if (/famous hat|celebrity|hat/.test(text)) return 'hat';
+  if (/rude passenger|insulted|apologize|rude person/.test(text)) return 'passenger';
+  if (/souvenir|collection|archive|museum|inheritance|memorial/.test(text)) return 'collection';
+  if (/brake|emergency seal/.test(text)) return 'brake';
+  if (/rescue net|net deployed|net packed/.test(text)) return 'net';
+  if (/three sidings/.test(text)) return 'sidings';
+  if (/bystander badge|badge/.test(text)) return 'badge';
+  if (/driver|steer|driver's seat/.test(text)) return 'driver';
+  if (/automatic|automation/.test(text)) return 'automatic';
+  if (/remote/.test(text)) return 'remote';
+  if (/jam|obstruction/.test(text)) return 'jam';
+  if (/platform|equal platforms/.test(text)) return 'platforms';
+  if (/moving your hand|cancel movement|complete diversion/.test(text)) return 'hand';
+  if (/familiar fork|five track|two is still more/.test(text)) return 'crowd';
+  if (/siding|alternate track|secondary track|empty platform|fork/.test(text)) return 'siding';
+  return level.layout.actionTarget === 'rail-switch' ? 'rail-switch' : 'default';
+}
+
+function createChoiceTargetGlyph(targetInfo: ChoiceTargetInfo, choiceIndex: number): SVGGElement | null {
+  if (targetInfo.type === 'bug') {
+    return targetInfo.count > 1
+      ? createCreatureGroupGlyph('bug', targetInfo.count)
+      : createCockroachGlyph();
+  }
+  if (targetInfo.type === 'butterfly') {
+    return targetInfo.count > 1
+      ? createCreatureGroupGlyph('butterfly', targetInfo.count)
+      : createButterflyGlyph();
+  }
+  if (targetInfo.type === 'robot') {
+    return targetInfo.count > 1
+      ? createCreatureGroupGlyph('robot', targetInfo.count)
+      : createRobotGlyph();
+  }
+  if (targetInfo.type === 'object') return createObjectGlyph(targetInfo.objectKind ?? 'object');
+  if (targetInfo.type === 'human') {
+    return targetInfo.count > 1
+      ? createCreatureGroupGlyph('human', targetInfo.count)
+      : createPersonGlyph(choiceIndex === 0 ? '#2563eb' : '#ea580c');
+  }
+  return null;
+}
+
 function routeContext(level: PlayerLevel, idx: number): string {
   const premise = level.premise.toLowerCase();
   const sidingIndex = premise.search(/\b(siding|alternate track|secondary track|other track)\b/);
-  if (idx > 0 && sidingIndex >= 0) return premise.slice(sidingIndex);
+  if (idx > 0 && sidingIndex >= 0) return premise.slice(Math.max(0, sidingIndex - 55));
   if (idx === 0 && sidingIndex >= 0) return premise.slice(0, sidingIndex);
   return premise;
 }
@@ -139,7 +210,7 @@ export function parseChoiceTarget(level: PlayerLevel, choice: PlayerChoice, idx:
   // from borrowing a different route's species or count from the full premise.
   const dyingSpecies = speciesDyingInPreview(choiceText);
   if (dyingSpecies) {
-    return { type: dyingSpecies, count: Math.max(1, countFromText(choiceText) ?? 1) };
+    return { type: dyingSpecies, count: Math.max(1, deathCountFromText(choiceText) ?? countFromText(routeText) ?? 1) };
   }
 
   const explicitSpecies = speciesFromText(choiceText);
@@ -149,7 +220,17 @@ export function parseChoiceTarget(level: PlayerLevel, choice: PlayerChoice, idx:
   if (choice.control === 'scene-action') {
     const actionObject = objectKindFromText(choiceText) ?? objectKindFromActionTarget(level.layout.actionTarget);
     if (level.layout.actionTarget === 'bridge-person') return { type: 'human', count: explicitCount ?? 1 };
-    if (actionObject) return { type: 'object', count: 0, objectKind: actionObject };
+    if (actionObject && !/\b(die|dies|died|death|deaths|killed|killing)\b/i.test(choiceText)) {
+      return { type: 'object', count: 0, objectKind: actionObject };
+    }
+  }
+
+  const routeSpecies = speciesFromText(routeText) ?? explicitSpecies;
+  if (/\b(die|dies|died|death|deaths|killed|killing)\b/i.test(choiceText) && routeSpecies) {
+    return {
+      type: routeSpecies,
+      count: Math.max(1, deathCountFromText(choiceText) ?? countFromText(routeText) ?? 1)
+    };
   }
 
   if (explicitSpecies && explicitSpecies !== 'human') {
@@ -161,11 +242,16 @@ export function parseChoiceTarget(level: PlayerLevel, choice: PlayerChoice, idx:
     return { type: 'object', count: 0, objectKind };
   }
 
-  if (!dyingSpecies && choice.control !== 'scene-action' && /\b(empty|unused|nothing else|nobody)\b/i.test(combined)) {
+  const explicitlyNamedSafePerson = explicitSpecies === 'human' && !/\bempty siding\b/i.test(choiceText);
+  if (
+    !dyingSpecies &&
+    choice.control !== 'scene-action' &&
+    /\b(empty|unused|nothing else|nobody)\b/i.test(combined) &&
+    !explicitlyNamedSafePerson
+  ) {
     return { type: 'none', count: 0 };
   }
 
-  const routeSpecies = speciesFromText(routeText) ?? explicitSpecies;
   if (routeSpecies) {
     return { type: routeSpecies, count: Math.max(1, explicitCount ?? countFromText(routeText) ?? 1) };
   }
@@ -248,6 +334,23 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     fill: 'url(#scene-hill-grad)'
   });
   svg.appendChild(hills);
+
+  // A level-specific prop anchors the moral problem in the same world as the
+  // tracks. It is built only from player-visible copy, so it cannot disclose
+  // hidden outcomes before the player commits.
+  const themeProp = createThemePropGlyph(sceneThemeFromLevel(level));
+  themeProp.setAttribute('transform', 'translate(150, 112)');
+  svg.appendChild(themeProp);
+  const themeConnector = createSvgElement('path', {
+    class: 'scene-theme-connector',
+    d: 'M 150,160 C 230,190 300,238 420,300',
+    fill: 'none',
+    stroke: '#60a5fa',
+    'stroke-width': 2,
+    'stroke-dasharray': '5,6',
+    opacity: '0.72'
+  });
+  svg.appendChild(themeConnector);
 
   // Overhead catenary poles and wire
   const wireGroup = createSvgElement('g', { class: 'scene-catenary' });
@@ -508,7 +611,9 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       class: 'bridge-actor',
       style: 'cursor: pointer;'
     });
-    bridgeActorEl.appendChild(createPersonGlyph('#dc2626'));
+    bridgeActorEl.appendChild(
+      (choice1 ? createChoiceTargetGlyph(parseChoiceTarget(level, choice1, 1), 1) : null) ?? createPersonGlyph('#dc2626')
+    );
     if (onSelectChoice && choice1) {
       bridgeActorEl.addEventListener('click', () => onSelectChoice(choice1.id));
     }
@@ -519,7 +624,9 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       class: 'downstream-group',
       style: 'cursor: pointer;'
     });
-    downstreamGroupEl.appendChild(createGroupGlyph(5));
+    downstreamGroupEl.appendChild(
+      (choice0 ? createChoiceTargetGlyph(parseChoiceTarget(level, choice0, 0), 0) : null) ?? createPersonGlyph('#2563eb')
+    );
     if (onSelectChoice && choice0) {
       downstreamGroupEl.addEventListener('click', () => onSelectChoice(choice0.id));
     }
@@ -533,7 +640,9 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       class: 'loop-target',
       style: 'cursor: pointer;'
     });
-    loopTargetEl.appendChild(createPersonGlyph('#ea580c'));
+    loopTargetEl.appendChild(
+      (choice1 ? createChoiceTargetGlyph(parseChoiceTarget(level, choice1, 1), 1) : null) ?? createPersonGlyph('#ea580c')
+    );
     if (onSelectChoice && choice1) {
       loopTargetEl.addEventListener('click', () => onSelectChoice(choice1.id));
     }
@@ -554,7 +663,9 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
       class: 'downstream-group',
       style: 'cursor: pointer;'
     });
-    downstreamGroupEl.appendChild(createGroupGlyph(5));
+    downstreamGroupEl.appendChild(
+      (choice0 ? createChoiceTargetGlyph(parseChoiceTarget(level, choice0, 0), 0) : null) ?? createPersonGlyph('#2563eb')
+    );
     if (onSelectChoice && choice0) {
       downstreamGroupEl.addEventListener('click', () => onSelectChoice(choice0.id));
     }
@@ -666,19 +777,7 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     if (level.layout.fogOverlay) {
       targetG.appendChild(createQuestionGlyph());
     } else {
-      if (targetInfo.type === 'bug') {
-        victimEl = createCockroachGlyph();
-      } else if (targetInfo.type === 'butterfly') {
-        victimEl = createButterflyGlyph();
-      } else if (targetInfo.type === 'robot') {
-        victimEl = createRobotGlyph();
-      } else if (targetInfo.type === 'object') {
-        victimEl = createObjectGlyph(targetInfo.objectKind ?? 'object');
-      } else if (targetInfo.count > 1) {
-        victimEl = createGroupGlyph(targetInfo.count);
-      } else if (targetInfo.count === 1) {
-        victimEl = createPersonGlyph(idx === 0 ? '#2563eb' : '#ea580c');
-      }
+      victimEl = createChoiceTargetGlyph(targetInfo, idx);
       if (victimEl) {
         targetG.appendChild(victimEl);
       }
