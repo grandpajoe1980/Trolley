@@ -142,9 +142,8 @@ export function validateSaveData(data: unknown): { valid: boolean; error?: strin
         return { valid: false, error: `Campaign checkpoint levelId ${cp.levelId} does not match next unlocked level ${nextLevel}` };
       }
     } else if (cp.mode === 'practice') {
-      if (cp.levelId > s.completions.length) {
-        return { valid: false, error: `Practice checkpoint levelId ${cp.levelId} has not been completed in campaign` };
-      }
+      // Practice mode is intentionally available for every catalog level,
+      // including future campaign levels selected from the library.
     } else {
       return { valid: false, error: `Invalid checkpoint mode: ${cp.mode}` };
     }

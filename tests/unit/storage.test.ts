@@ -118,4 +118,23 @@ describe('Storage, Persistence, and Recovery Contract', () => {
     mgr.recordCompletion(1, 'B', 'L001-B', 'sess-cp');
     expect(mgr.getSave().checkpoint).toBeNull();
   });
+
+  it('accepts practice checkpoints for future library levels', () => {
+    const save = createInitialSave('practice-library');
+    save.checkpoint = {
+      levelId: 6,
+      mode: 'practice',
+      sessionId: 'practice-sess',
+      phase: 'paused',
+      selectedChoiceId: 'A',
+      selectionOrigin: 'player',
+      timingMode: 'standard',
+      activeElapsedMs: 12000,
+      committedOutcomeId: null
+    };
+
+    const result = validateSaveData(save);
+    expect(result.valid).toBe(true);
+    expect(result.save?.checkpoint?.levelId).toBe(6);
+  });
 });
