@@ -16,6 +16,9 @@ export class SessionManager {
   private listeners: Set<StateListener> = new Set();
   private rafId: number | null = null;
   private isDestroyed = false;
+  private speedMultiplier = 1;
+  private lastRealNow: number | null = null;
+  private virtualNow = 0;
 
   constructor(clock: Clock = defaultClock, initialState: EngineState = initialEngineState) {
     this.clock = clock;
@@ -24,6 +27,39 @@ export class SessionManager {
 
   public getState(): EngineState {
     return this.state;
+  }
+
+  public getSpeedMultiplier(): number {
+    return this.speedMultiplier;
+  }
+
+  public setSpeedMultiplier(mult: number): void {
+    this.syncVirtualTime();
+    this.speedMultiplier = Math.max(1, mult);
+  }
+
+  public toggleSpeed(): number {
+    this.syncVirtualTime();
+    if (this.speedMultiplier === 1) {
+      this.speedMultiplier = 3;
+    } else if (this.speedMultiplier === 3) {
+      this.speedMultiplier = 5;
+    } else {
+      this.speedMultiplier = 1;
+    }
+    return this.speedMultiplier;
+  }
+
+  private syncVirtualTime(): number {
+    const realNow = this.clock.now();
+    if (this.lastRealNow !== null) {
+      const realDelta = Math.max(0, realNow - this.lastRealNow);
+      this.virtualNow += realDelta * this.speedMultiplier;
+    } else {
+      this.virtualNow = realNow;
+    }
+    this.lastRealNow = realNow;
+    return this.virtualNow;
   }
 
   public subscribe(listener: StateListener): () => void {
@@ -65,6 +101,8 @@ export class SessionManager {
     campaignId: string
   ): void {
     const now = this.clock.now();
+    this.lastRealNow = now;
+    this.virtualNow = now;
     this.dispatch({
       type: 'START_LEVEL',
       level,
@@ -72,27 +110,27 @@ export class SessionManager {
       timingMode,
       sessionId,
       campaignId,
-      nowMs: now
+      nowMs: this.virtualNow
     });
   }
 
   public selectChoice(choiceId: ChoiceId): void {
-    const now = this.clock.now();
+    const now = this.syncVirtualTime();
     this.dispatch({ type: 'SELECT_CHOICE', choiceId, nowMs: now });
   }
 
   public resolveNow(): void {
-    const now = this.clock.now();
+    const now = this.syncVirtualTime();
     this.dispatch({ type: 'RESOLVE_NOW', nowMs: now });
   }
 
   public pause(reason: 'user' | 'hidden' = 'user'): void {
-    const now = this.clock.now();
+    const now = this.syncVirtualTime();
     this.dispatch({ type: 'PAUSE', nowMs: now, reason });
   }
 
   public resume(): void {
-    const now = this.clock.now();
+    const now = this.syncVirtualTime();
     this.dispatch({ type: 'RESUME', nowMs: now });
   }
 
@@ -101,16 +139,25 @@ export class SessionManager {
   }
 
   public restartLevel(): void {
-    const now = this.clock.now();
+    const now = this.syncVirtualTime();
     this.dispatch({ type: 'RESTART_LEVEL', nowMs: now });
   }
 
-  public tick(nowMs: number = this.clock.now()): void {
-    this.dispatch({ type: 'TICK', nowMs });
+  public tick(realNow: number = this.clock.now()): void {
+    if (this.lastRealNow === null) {
+      this.lastRealNow = realNow;
+      this.virtualNow = realNow;
+    }
+    const realDelta = Math.max(0, realNow - this.lastRealNow);
+    this.lastRealNow = realNow;
+    this.virtualNow += realDelta * this.speedMultiplier;
+    this.dispatch({ type: 'TICK', nowMs: this.virtualNow });
   }
 
   public restoreSession(session: EngineSession): void {
     const phase = session.committed !== null ? 'result' : 'paused';
+    this.lastRealNow = this.clock.now();
+    this.virtualNow = this.lastRealNow;
     this.dispatch({
       type: 'RESTORE_SESSION',
       session,

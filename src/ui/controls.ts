@@ -9,6 +9,7 @@ export interface ControlsCallbacks {
   onResume: () => void;
   onSkipAnimation: () => void;
   onRestartLevel: () => void;
+  onToggleSpeed?: () => number;
 }
 
 export interface ControlsComponent {
@@ -114,6 +115,26 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
   });
   actionControls.appendChild(resolveBtn);
 
+  const speedBtn = document.createElement('button');
+  speedBtn.type = 'button';
+  speedBtn.className = 'btn btn-secondary btn-speed';
+  speedBtn.innerHTML = '⚡ <span>Speed up (3×)</span>';
+  speedBtn.title = 'Increase trolley speed (Shortcut: S)';
+  speedBtn.addEventListener('click', () => {
+    sound.playClick();
+    if (callbacks.onToggleSpeed) {
+      const newSpeed = callbacks.onToggleSpeed();
+      if (newSpeed === 1) {
+        speedBtn.innerHTML = '⚡ <span>Speed up (3×)</span>';
+      } else if (newSpeed === 3) {
+        speedBtn.innerHTML = '⚡ <span>Fast (3×) → 5×</span>';
+      } else {
+        speedBtn.innerHTML = '🐢 <span>Normal (1×)</span>';
+      }
+    }
+  });
+  actionControls.appendChild(speedBtn);
+
   const pauseBtn = document.createElement('button');
   pauseBtn.type = 'button';
   pauseBtn.className = 'btn btn-secondary btn-pause';
@@ -130,7 +151,7 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
   const skipBtn = document.createElement('button');
   skipBtn.type = 'button';
   skipBtn.className = 'btn btn-ghost btn-skip';
-  skipBtn.textContent = 'Skip animation';
+  skipBtn.textContent = 'Skip to result ⏩';
   skipBtn.style.display = 'none';
   skipBtn.addEventListener('click', () => {
     callbacks.onSkipAnimation();
@@ -171,6 +192,13 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
       } else {
         callbacks.onPause();
       }
+      return;
+    }
+
+    // Speed toggle: S
+    if (key === 'S') {
+      e.preventDefault();
+      speedBtn.click();
       return;
     }
 

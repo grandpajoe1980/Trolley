@@ -429,6 +429,30 @@ body {
   color: var(--text-main);
 }
 
+.btn-speed {
+  border-color: var(--accent-amber);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-speed:hover:not(:disabled) {
+  border-color: var(--accent-amber);
+  background: rgba(217, 119, 6, 0.15);
+}
+
+.btn-skip {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.btn-skip:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--primary-hover);
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

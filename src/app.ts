@@ -319,7 +319,8 @@ export class App {
       onPause: () => this.currentSession?.pause('user'),
       onResume: () => this.currentSession?.resume(),
       onSkipAnimation: () => this.currentSession?.skipAnimation(),
-      onRestartLevel: () => this.currentSession?.restartLevel()
+      onRestartLevel: () => this.currentSession?.restartLevel(),
+      onToggleSpeed: () => (this.currentSession ? this.currentSession.toggleSpeed() : 1)
     });
     levelContainer.appendChild(this.currentControls.element);
 
@@ -329,6 +330,7 @@ export class App {
     const settings = this.saveManager.getSettings();
     const sessionId = generateUUID();
     const campaignId = this.saveManager.getSave().campaignId;
+    let completionRecorded = this.saveManager.getSave().completions.some((c) => c.levelId === levelId);
 
     this.currentSession = new SessionManager();
 
@@ -376,8 +378,9 @@ export class App {
       this.currentScene?.update(state.session, reducedMotion);
       this.currentControls?.update(state.session);
 
-      // Handle commitment persistence
-      if (state.session.committed !== null && state.session.resolutionElapsedMs === 0) {
+      // Handle commitment persistence (reliably triggers once on commit)
+      if (state.session.committed !== null && !completionRecorded) {
+        completionRecorded = true;
         sound.playTrolleyBell();
         if (mode === 'campaign') {
           this.saveManager.recordCompletion(
@@ -396,7 +399,21 @@ export class App {
         this.currentControls?.element.remove();
         this.currentResultEl = createResultPanel(rawLevel, state.session.selectedChoiceId, mode, {
           onNextLevel: () => {
-            window.location.hash = `#/level/${levelId + 1}`;
+            const nextLvlId = levelId + 1;
+            // Guarantee completion is recorded before route change
+            if (mode === 'campaign' && !this.saveManager.getSave().completions.some((c) => c.levelId === levelId)) {
+              if (state.session?.committed) {
+                this.saveManager.recordCompletion(
+                  levelId,
+                  state.session.committed.choiceId,
+                  state.session.committed.outcomeId,
+                  state.session.sessionId
+                );
+              }
+            }
+            this.currentMode = 'campaign';
+            window.location.hash = `#/level/${nextLvlId}`;
+            this.route();
           },
           onReplayPractice: () => {
             this.teardownCurrentSession();
@@ -405,9 +422,11 @@ export class App {
           onReturnToCampaign: () => {
             const nextLvl = this.saveManager.getNextUnlockedLevel();
             window.location.hash = `#/level/${nextLvl}`;
+            this.route();
           },
           onViewSummary: () => {
             window.location.hash = '#/summary';
+            this.route();
           }
         });
         levelContainer.appendChild(this.currentResultEl);

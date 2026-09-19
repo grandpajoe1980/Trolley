@@ -188,4 +188,41 @@ describe('Engine State Transitions and Clock Invariants', () => {
     expect(session.getState().session?.committed?.choiceId).toBe('A');
     expect(session.getState().session?.committed?.selectionOrigin).toBe('player');
   });
+
+  it('speed multiplier accelerates virtual monotonic clock advancement', () => {
+    const lvl = getLevel(1)!;
+    const clock = new TestClock(0);
+    const session = new SessionManager(clock);
+    session.startLevel(lvl, 'campaign', 'standard', 'sess-speed', 'camp-1');
+
+    expect(session.getSpeedMultiplier()).toBe(1);
+
+    // Toggle to 3x
+    const speed2 = session.toggleSpeed();
+    expect(speed2).toBe(3);
+    expect(session.getSpeedMultiplier()).toBe(3);
+
+    // 1000ms of real clock time should advance activeElapsedMs by 3000ms
+    clock.advance(1000);
+    session.tick();
+    expect(session.getState().session?.activeElapsedMs).toBe(3000);
+
+    // Toggle to 5x
+    const speed3 = session.toggleSpeed();
+    expect(speed3).toBe(5);
+
+    // 1000ms of real clock time should advance by another 5000ms -> 8000ms total
+    clock.advance(1000);
+    session.tick();
+    expect(session.getState().session?.activeElapsedMs).toBe(8000);
+
+    // Toggle back to 1x
+    const speed4 = session.toggleSpeed();
+    expect(speed4).toBe(1);
+
+    // 1000ms advances by 1000ms -> 9000ms total
+    clock.advance(1000);
+    session.tick();
+    expect(session.getState().session?.activeElapsedMs).toBe(9000);
+  });
 });
