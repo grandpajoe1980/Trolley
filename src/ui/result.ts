@@ -240,7 +240,9 @@ export function createResultPanel(
 
   // Focus the heading on creation for screen readers
   setTimeout(() => {
-    heading.focus();
+    // Keep focus accessible without moving the player away from the game and
+    // the level navigation row when the result is added below it.
+    heading.focus({ preventScroll: true });
   }, 0);
 
   return container;
