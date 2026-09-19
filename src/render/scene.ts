@@ -375,7 +375,10 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     y: -42,
     width: 60,
     height: 84,
-    fill: 'transparent',
+    // A nearly transparent painted fill is more reliable for real SVG mouse
+    // hit testing than the keyword `transparent` in Chromium.
+    fill: '#ffffff',
+    'fill-opacity': '0.001',
     'pointer-events': 'all'
   });
   switchGroup.appendChild(switchHitArea);
