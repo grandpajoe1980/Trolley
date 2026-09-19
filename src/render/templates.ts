@@ -19,7 +19,12 @@ export const JUNCTION_X = 430;
 export const JUNCTION_Y = 300;
 export const APPROACH_START_X = 60;
 export const APPROACH_START_Y = 300;
-export const APPROACH_TRAVEL_SPEED_MULTIPLIER = 1.5;
+// The trolley reaches the junction sooner than the full decision window, keeping
+// the opening motion noticeable without changing the decision timer itself.
+export const APPROACH_TRAVEL_SPEED_MULTIPLIER = 2;
+// A deliberate player selection adds a second burst of speed toward the chosen
+// route, making the consequence of taking control immediately visible.
+export const PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER = 1.5;
 
 export function getTrackDefinition(template: LayoutTemplate): TrackDefinition {
   const approachPath = `M ${APPROACH_START_X} ${APPROACH_START_Y} L ${JUNCTION_X} ${JUNCTION_Y}`;

@@ -5,6 +5,7 @@ import { createScene, parseChoiceTarget } from '../../src/render/scene';
 import {
   APPROACH_TRAVEL_SPEED_MULTIPLIER,
   getTrackDefinition,
+  PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER,
   sampleApproachPosition,
   sampleBranchPosition,
   sampleUntimedLoopPosition
@@ -40,13 +41,20 @@ describe('Render and UI Layout Templates', () => {
     expect(junction.y).toBe(300);
   });
 
-  it('accelerates the first approach segment by 50%', () => {
-    expect(APPROACH_TRAVEL_SPEED_MULTIPLIER).toBe(1.5);
-    expect(sampleApproachPosition(1 / 3, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(
+  it('accelerates the opening approach and adds a second boost after selection', () => {
+    expect(APPROACH_TRAVEL_SPEED_MULTIPLIER).toBe(2);
+    expect(PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER).toBe(1.5);
+    expect(sampleApproachPosition(0.25, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(
       sampleApproachPosition(0.5).x,
       5
     );
-    expect(sampleApproachPosition(2 / 3, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(430, 5);
+    expect(
+      sampleApproachPosition(1 / 6, APPROACH_TRAVEL_SPEED_MULTIPLIER * PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER).x
+    ).toBeCloseTo(sampleApproachPosition(0.5).x, 5);
+    expect(sampleApproachPosition(0.5, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(430, 5);
+    expect(
+      sampleApproachPosition(1 / 3, APPROACH_TRAVEL_SPEED_MULTIPLIER * PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER).x
+    ).toBeCloseTo(430, 5);
   });
 
   it('sampleUntimedLoopPosition loops without crossing the junction', () => {

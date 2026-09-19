@@ -17,6 +17,7 @@ import {
 import {
   getTrackDefinition,
   APPROACH_TRAVEL_SPEED_MULTIPLIER,
+  PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER,
   sampleApproachPosition,
   sampleBranchPosition,
   sampleUntimedLoopPosition,
@@ -762,7 +763,14 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
     update(session: EngineSession, reducedMotion: boolean): void {
       const selectedSlot = level.choices.findIndex((c) => c.id === session.selectedChoiceId);
       const activeSlot = selectedSlot >= 0 ? selectedSlot : 0;
-      switchGroup.dataset.selectedChoice = level.choices[activeSlot]?.id ?? level.defaultChoiceId;
+      const activeChoiceId = level.choices[activeSlot]?.id ?? level.defaultChoiceId;
+      switchGroup.dataset.selectedChoice = activeChoiceId;
+      if (isRouteSwitch && onSelectChoice) {
+        switchGroup.setAttribute(
+          'aria-label',
+          `Rail switch. Route ${activeChoiceId} selected. Click to change the selected route.`
+        );
+      }
 
       // Update switch lever rotation
       switchGroup.innerHTML = '';
@@ -880,12 +888,16 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
           const pose = sampleApproachPosition(staticU);
           setTrolleyPose(pose.x, pose.y, pose.angle ?? 0);
         } else if (session.timingMode === 'untimed') {
-          const loopT = (session.activeElapsedMs % 6000) / 6000;
+          const loopSpeed = session.selectionOrigin === 'player' ? PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER : 1;
+          const loopT = ((session.activeElapsedMs * loopSpeed) % 6000) / 6000;
           const pose = sampleUntimedLoopPosition(loopT);
           setTrolleyPose(pose.x, pose.y, pose.angle ?? 0);
         } else {
           const u = session.deadlineMs > 0 ? Math.min(1, session.activeElapsedMs / session.deadlineMs) : 0;
-          const pose = sampleApproachPosition(u, APPROACH_TRAVEL_SPEED_MULTIPLIER);
+          const approachSpeed =
+            APPROACH_TRAVEL_SPEED_MULTIPLIER *
+            (session.selectionOrigin === 'player' ? PLAYER_SELECTION_TRAVEL_SPEED_MULTIPLIER : 1);
+          const pose = sampleApproachPosition(u, approachSpeed);
           setTrolleyPose(pose.x, pose.y, pose.angle ?? 0);
         }
       }
