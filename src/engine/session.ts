@@ -154,7 +154,7 @@ export class SessionManager {
     this.dispatch({ type: 'TICK', nowMs: this.virtualNow });
   }
 
-  public restoreSession(session: EngineSession, restoredPhase: 'paused' | 'result' = 'paused'): void {
+  public restoreSession(session: EngineSession, restoredPhase: 'running' | 'paused' | 'result' = 'paused'): void {
     const phase = session.committed !== null ? 'result' : restoredPhase;
     this.lastRealNow = this.clock.now();
     this.virtualNow = this.lastRealNow;

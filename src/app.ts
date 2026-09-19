@@ -475,7 +475,7 @@ export class App {
         resolutionElapsedMs: checkpoint.phase === 'result' ? 2400 : 0,
         anchorMs: null,
         phaseBeforePause: checkpoint.committedOutcomeId ? null : 'running',
-        pauseReason: checkpoint.committedOutcomeId ? null : 'user',
+        pauseReason: null,
         committed: checkpoint.committedOutcomeId
           ? {
               choiceId: checkpoint.selectedChoiceId,
@@ -487,7 +487,7 @@ export class App {
           : null,
         sessionId: checkpoint.sessionId,
         campaignId
-      }, checkpoint.committedOutcomeId ? 'result' : 'paused');
+      }, checkpoint.committedOutcomeId ? 'result' : 'running');
     } else {
       // Fresh start
       this.currentSession.startLevel(rawLevel, mode, settings.timingMode, sessionId, campaignId);

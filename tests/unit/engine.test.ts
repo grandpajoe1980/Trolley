@@ -189,6 +189,22 @@ describe('Engine State Transitions and Clock Invariants', () => {
     expect(session.getState().session?.committed?.selectionOrigin).toBe('player');
   });
 
+  it('restores an uncommitted checkpoint into a running level', () => {
+    const lvl = getLevel(2)!;
+    const clock = new TestClock(0);
+    const source = new SessionManager(clock);
+    source.startLevel(lvl, 'campaign', 'standard', 'sess-restore', 'camp-restore');
+    clock.advance(5000);
+    source.pause('user');
+
+    const restored = new SessionManager(clock);
+    restored.restoreSession(source.getState().session!, 'running');
+
+    expect(restored.getState().phase).toBe('running');
+    expect(restored.getState().session?.pauseReason).toBeNull();
+    expect(restored.getState().session?.phaseBeforePause).toBeNull();
+  });
+
   it('speed multiplier accelerates virtual monotonic clock advancement', () => {
     const lvl = getLevel(1)!;
     const clock = new TestClock(0);

@@ -16,6 +16,7 @@ import {
 } from './glyphs';
 import {
   getTrackDefinition,
+  APPROACH_TRAVEL_SPEED_MULTIPLIER,
   sampleApproachPosition,
   sampleBranchPosition,
   sampleUntimedLoopPosition,
@@ -884,7 +885,7 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
           setTrolleyPose(pose.x, pose.y, pose.angle ?? 0);
         } else {
           const u = session.deadlineMs > 0 ? Math.min(1, session.activeElapsedMs / session.deadlineMs) : 0;
-          const pose = sampleApproachPosition(u);
+          const pose = sampleApproachPosition(u, APPROACH_TRAVEL_SPEED_MULTIPLIER);
           setTrolleyPose(pose.x, pose.y, pose.angle ?? 0);
         }
       }

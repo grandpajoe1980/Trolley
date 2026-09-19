@@ -19,6 +19,7 @@ export const JUNCTION_X = 430;
 export const JUNCTION_Y = 300;
 export const APPROACH_START_X = 60;
 export const APPROACH_START_Y = 300;
+export const APPROACH_TRAVEL_SPEED_MULTIPLIER = 1.5;
 
 export function getTrackDefinition(template: LayoutTemplate): TrackDefinition {
   const approachPath = `M ${APPROACH_START_X} ${APPROACH_START_Y} L ${JUNCTION_X} ${JUNCTION_Y}`;
@@ -118,8 +119,8 @@ export function getTrackDefinition(template: LayoutTemplate): TrackDefinition {
  * Standard / Extended approach interpolation:
  * u in [0, 1] travels linearly from (60, 300) to (430, 300)
  */
-export function sampleApproachPosition(u: number): Point2D {
-  const clampedU = Math.max(0, Math.min(1, u));
+export function sampleApproachPosition(u: number, speedMultiplier = 1): Point2D {
+  const clampedU = Math.max(0, Math.min(1, u * speedMultiplier));
   const x = APPROACH_START_X + clampedU * (JUNCTION_X - APPROACH_START_X);
   return { x, y: JUNCTION_Y, angle: 0 };
 }

@@ -3,6 +3,7 @@ import { getLevel, getOutcome, getPlayerLevel } from '../../src/content/catalog'
 import type { LayoutTemplate } from '../../src/content/types';
 import { createScene, parseChoiceTarget } from '../../src/render/scene';
 import {
+  APPROACH_TRAVEL_SPEED_MULTIPLIER,
   getTrackDefinition,
   sampleApproachPosition,
   sampleBranchPosition,
@@ -37,6 +38,15 @@ describe('Render and UI Layout Templates', () => {
     const junction = sampleApproachPosition(1);
     expect(junction.x).toBe(430);
     expect(junction.y).toBe(300);
+  });
+
+  it('accelerates the first approach segment by 50%', () => {
+    expect(APPROACH_TRAVEL_SPEED_MULTIPLIER).toBe(1.5);
+    expect(sampleApproachPosition(1 / 3, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(
+      sampleApproachPosition(0.5).x,
+      5
+    );
+    expect(sampleApproachPosition(2 / 3, APPROACH_TRAVEL_SPEED_MULTIPLIER).x).toBeCloseTo(430, 5);
   });
 
   it('sampleUntimedLoopPosition loops without crossing the junction', () => {
