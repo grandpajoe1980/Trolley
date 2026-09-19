@@ -144,11 +144,11 @@ export function engineReducer(state: EngineState, action: EngineAction): EngineS
     }
 
     case 'SELECT_CHOICE': {
-      if (!state.session || state.phase !== 'running') return state;
+      if (!state.session || (state.phase !== 'running' && state.phase !== 'paused')) return state;
       const s = { ...state.session };
 
-      // First sync active time
-      if (s.anchorMs !== null) {
+      // First sync active time if running
+      if (state.phase === 'running' && s.anchorMs !== null) {
         const delta = Math.max(0, action.nowMs - s.anchorMs);
         s.anchorMs = action.nowMs;
 
@@ -290,7 +290,7 @@ export function engineReducer(state: EngineState, action: EngineAction): EngineS
     case 'RESTORE_SESSION': {
       return {
         phase: action.phase,
-        session: { ...action.session, anchorMs: null },
+        session: { ...action.session, anchorMs: action.phase === 'running' ? action.session.anchorMs : null },
         errorMessage: null
       };
     }

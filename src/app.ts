@@ -334,41 +334,7 @@ export class App {
 
     this.currentSession = new SessionManager();
 
-    // Check for existing checkpoint
-    const checkpoint = this.saveManager.getSave().checkpoint;
-    if (checkpoint && checkpoint.levelId === levelId && checkpoint.mode === mode) {
-      // Restore from checkpoint
-      this.currentSession.restoreSession({
-        levelId,
-        level: rawLevel,
-        mode,
-        selectedChoiceId: checkpoint.selectedChoiceId,
-        selectionOrigin: checkpoint.selectionOrigin,
-        timingMode: checkpoint.timingMode,
-        deadlineMs: checkpoint.timingMode === 'untimed' ? Number.POSITIVE_INFINITY : 30000,
-        activeElapsedMs: checkpoint.activeElapsedMs,
-        resolutionElapsedMs: checkpoint.phase === 'result' ? 2400 : 0,
-        anchorMs: null,
-        phaseBeforePause: 'running',
-        pauseReason: 'user',
-        committed: checkpoint.committedOutcomeId
-          ? {
-              choiceId: checkpoint.selectedChoiceId,
-              outcomeId: checkpoint.committedOutcomeId,
-              outcome: rawLevel.choices.find((c) => c.id === checkpoint.selectedChoiceId)!.outcome,
-              committedAtMs: checkpoint.activeElapsedMs,
-              selectionOrigin: checkpoint.selectionOrigin
-            }
-          : null,
-        sessionId: checkpoint.sessionId,
-        campaignId
-      });
-    } else {
-      // Fresh start
-      this.currentSession.startLevel(rawLevel, mode, settings.timingMode, sessionId, campaignId);
-    }
-
-    // Subscribe to state changes
+    // Subscribe to state changes immediately
     this.currentSession.subscribe((state) => {
       if (!state.session) return;
 
@@ -432,6 +398,40 @@ export class App {
         levelContainer.appendChild(this.currentResultEl);
       }
     });
+
+    // Check for existing checkpoint
+    const checkpoint = this.saveManager.getSave().checkpoint;
+    if (checkpoint && checkpoint.levelId === levelId && checkpoint.mode === mode) {
+      // Restore from checkpoint
+      this.currentSession.restoreSession({
+        levelId,
+        level: rawLevel,
+        mode,
+        selectedChoiceId: checkpoint.selectedChoiceId,
+        selectionOrigin: checkpoint.selectionOrigin,
+        timingMode: checkpoint.timingMode,
+        deadlineMs: checkpoint.timingMode === 'untimed' ? Number.POSITIVE_INFINITY : 30000,
+        activeElapsedMs: checkpoint.activeElapsedMs,
+        resolutionElapsedMs: checkpoint.phase === 'result' ? 2400 : 0,
+        anchorMs: null,
+        phaseBeforePause: null,
+        pauseReason: null,
+        committed: checkpoint.committedOutcomeId
+          ? {
+              choiceId: checkpoint.selectedChoiceId,
+              outcomeId: checkpoint.committedOutcomeId,
+              outcome: rawLevel.choices.find((c) => c.id === checkpoint.selectedChoiceId)!.outcome,
+              committedAtMs: checkpoint.activeElapsedMs,
+              selectionOrigin: checkpoint.selectionOrigin
+            }
+          : null,
+        sessionId: checkpoint.sessionId,
+        campaignId
+      });
+    } else {
+      // Fresh start
+      this.currentSession.startLevel(rawLevel, mode, settings.timingMode, sessionId, campaignId);
+    }
 
     // Throttled periodic checkpoint saving (every 1,000ms while running)
     this.checkpointThrottleTimer = window.setInterval(() => {

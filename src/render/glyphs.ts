@@ -721,3 +721,170 @@ export function createImpactCloudGlyph(): SVGGElement {
   g.appendChild(innerPuff);
   return g;
 }
+
+/**
+ * Visual death / casualty indicator with blood splatter, pool, and impact particles
+ */
+export function createBloodSplatterGlyph(
+  victimType: 'human' | 'bug' | 'butterfly' | 'robot' = 'human',
+  count = 1
+): SVGGElement {
+  const g = createSvgElement('g', { class: 'glyph-blood-splatter' });
+
+  if (victimType === 'human') {
+    const poolRadius = count > 1 ? 34 : 22;
+
+    // Red pooled blood base
+    const bloodPool = createSvgElement('ellipse', {
+      cx: 0,
+      cy: 16,
+      rx: poolRadius,
+      ry: poolRadius * 0.42,
+      fill: '#991b1b', // Deep crimson
+      opacity: '0.92'
+    });
+    g.appendChild(bloodPool);
+
+    // Inner darker arterial blood core
+    const innerPool = createSvgElement('ellipse', {
+      cx: -2,
+      cy: 17,
+      rx: poolRadius * 0.65,
+      ry: poolRadius * 0.28,
+      fill: '#7f1d1d',
+      opacity: '0.96'
+    });
+    g.appendChild(innerPool);
+
+    // Dynamic blood splatter droplets
+    const droplets = [
+      { cx: -20, cy: 10, r: 3.5 },
+      { cx: 22, cy: 13, r: 4 },
+      { cx: -30, cy: 18, r: 2.5 },
+      { cx: 29, cy: 20, r: 2.8 },
+      { cx: 10, cy: 23, r: 3.2 },
+      { cx: -14, cy: 24, r: 2.2 },
+      { cx: 16, cy: 7, r: 2.8 },
+      { cx: -24, cy: 5, r: 2 },
+      { cx: 36, cy: 16, r: 1.8 },
+      { cx: -36, cy: 14, r: 1.8 },
+      { cx: 0, cy: 26, r: 2.5 }
+    ];
+
+    droplets.forEach((d) => {
+      const drop = createSvgElement('circle', {
+        cx: d.cx,
+        cy: d.cy,
+        r: d.r,
+        fill: '#dc2626'
+      });
+      g.appendChild(drop);
+    });
+
+    // Splatter streaks across track rails
+    const streak1 = createSvgElement('path', {
+      d: 'M -14,14 Q -25,18 -32,26',
+      fill: 'none',
+      stroke: '#b91c1c',
+      'stroke-width': 2.5,
+      'stroke-linecap': 'round'
+    });
+    const streak2 = createSvgElement('path', {
+      d: 'M 10,15 Q 24,20 30,27',
+      fill: 'none',
+      stroke: '#b91c1c',
+      'stroke-width': 2.5,
+      'stroke-linecap': 'round'
+    });
+    g.appendChild(streak1);
+    g.appendChild(streak2);
+
+    // Red impact shock burst ring
+    const impactShock = createSvgElement('ellipse', {
+      cx: 0,
+      cy: 16,
+      rx: poolRadius * 1.35,
+      ry: poolRadius * 0.6,
+      fill: 'none',
+      stroke: '#ef4444',
+      'stroke-width': 2,
+      opacity: '0.85',
+      'stroke-dasharray': '5,3'
+    });
+    g.appendChild(impactShock);
+  } else if (victimType === 'bug') {
+    // Greenish-amber bug splat
+    const bugPool = createSvgElement('ellipse', {
+      cx: 0,
+      cy: 8,
+      rx: 22,
+      ry: 10,
+      fill: '#65a30d',
+      opacity: '0.92'
+    });
+    const innerBug = createSvgElement('ellipse', {
+      cx: 2,
+      cy: 8,
+      rx: 14,
+      ry: 6,
+      fill: '#4d7c0f',
+      opacity: '0.96'
+    });
+    g.appendChild(bugPool);
+    g.appendChild(innerBug);
+
+    const bugDrops: [number, number, number][] = [[-16, 4, 3], [18, 6, 2.8], [6, 14, 2.2], [-10, 13, 2.5], [22, 11, 2]];
+    for (const [dx, dy, r] of bugDrops) {
+      const drop = createSvgElement('circle', {
+        cx: dx,
+        cy: dy,
+        r,
+        fill: '#84cc16'
+      });
+      g.appendChild(drop);
+    }
+  } else if (victimType === 'butterfly') {
+    // Golden amber flutter dust
+    const burst = createSvgElement('ellipse', {
+      cx: 0,
+      cy: 8,
+      rx: 18,
+      ry: 9,
+      fill: 'rgba(245, 158, 11, 0.45)'
+    });
+    g.appendChild(burst);
+
+    const sparkles: [number, number][] = [[-14, -4], [15, 2], [-8, 12], [9, 11], [0, -11]];
+    for (const [dx, dy] of sparkles) {
+      const sparkle = createSvgElement('polygon', {
+        points: `${dx},${dy - 3} ${dx + 3},${dy} ${dx},${dy + 3} ${dx - 3},${dy}`,
+        fill: '#fbbf24'
+      });
+      g.appendChild(sparkle);
+    }
+  } else if (victimType === 'robot') {
+    // Black machine oil puddle and sparks
+    const oilPool = createSvgElement('ellipse', {
+      cx: 0,
+      cy: 16,
+      rx: 26,
+      ry: 11,
+      fill: '#18181b',
+      opacity: '0.95'
+    });
+    g.appendChild(oilPool);
+
+    const sparks: [number, number][] = [[-16, 6], [18, 8], [-10, 22], [15, 20]];
+    for (const [dx, dy] of sparks) {
+      const spark = createSvgElement('circle', {
+        cx: dx,
+        cy: dy,
+        r: 2.2,
+        fill: '#f59e0b'
+      });
+      g.appendChild(spark);
+    }
+  }
+
+  return g;
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getLevel, getOutcome, getPlayerLevel } from '../../src/content/catalog';
 import type { LayoutTemplate } from '../../src/content/types';
+import { createScene, parseChoiceTarget } from '../../src/render/scene';
 import {
   getTrackDefinition,
   sampleApproachPosition,
@@ -135,5 +136,85 @@ describe('Render and UI Layout Templates', () => {
       expect(def).toBeDefined();
       expect(def.branchPaths.length).toBe(lvl!.choices.length);
     }
+  });
+
+  it('correctly renders 5 people on track A and 1 person on track B for Level 4', () => {
+    const pLvl4 = getPlayerLevel(4)!;
+    expect(pLvl4).toBeDefined();
+
+    const targetA = parseChoiceTarget(pLvl4, pLvl4.choices[0]!, 0);
+    const targetB = parseChoiceTarget(pLvl4, pLvl4.choices[1]!, 1);
+
+    expect(targetA.type).toBe('human');
+    expect(targetA.count).toBe(5);
+    expect(targetB.type).toBe('human');
+    expect(targetB.count).toBe(1);
+
+    const scene = createScene(pLvl4);
+    const targetGA = scene.element.querySelector('.target-glyph-A');
+    const targetGB = scene.element.querySelector('.target-glyph-B');
+    expect(targetGA).not.toBeNull();
+    expect(targetGB).not.toBeNull();
+    // Track A has 5-person multiplier group badge
+    expect(targetGA?.querySelector('.glyph-group')).not.toBeNull();
+    expect(targetGA?.textContent).toContain('×5');
+    // Track B has single person
+    expect(targetGB?.querySelector('.glyph-person')).not.toBeNull();
+
+    scene.destroy();
+  });
+
+  it('renders blood splatters and casualty indicators on impacted tracks during resolution', () => {
+    const pLvl4 = getPlayerLevel(4)!;
+    const rawLvl4 = getLevel(4)!;
+
+    let selectedChoice = 'A';
+    const scene = createScene(pLvl4, (id) => {
+      selectedChoice = id;
+    });
+
+    const bloodA = scene.element.querySelector('.blood-splatter-A') as SVGGElement;
+    const bloodB = scene.element.querySelector('.blood-splatter-B') as SVGGElement;
+    expect(bloodA).not.toBeNull();
+    expect(bloodB).not.toBeNull();
+    expect(bloodA.getAttribute('opacity')).toBe('0');
+
+    // Simulate resolution of choice A at full impact
+    scene.update(
+      {
+        levelId: 4,
+        level: rawLvl4,
+        mode: 'campaign',
+        selectedChoiceId: 'A',
+        selectionOrigin: 'player',
+        timingMode: 'standard',
+        deadlineMs: 30000,
+        activeElapsedMs: 30000,
+        resolutionElapsedMs: 2000,
+        anchorMs: null,
+        phaseBeforePause: null,
+        pauseReason: null,
+        committed: {
+          choiceId: 'A',
+          outcomeId: 'L004-A',
+          outcome: rawLvl4.choices[0]!.outcome,
+          committedAtMs: 30000,
+          selectionOrigin: 'player'
+        },
+        sessionId: 'test-sess',
+        campaignId: 'test-camp'
+      },
+      false
+    );
+
+    expect(bloodA.getAttribute('opacity')).toBe('1');
+    expect(bloodB.getAttribute('opacity')).toBe('0');
+
+    // Target glyph and plaque should be clickable
+    const plaqueB = scene.element.querySelector('.route-plaque-B') as SVGGElement;
+    plaqueB.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(selectedChoice).toBe('B');
+
+    scene.destroy();
   });
 });

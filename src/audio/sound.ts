@@ -140,6 +140,50 @@ class SoundEngine {
     osc.start(now);
     osc.stop(now + 0.22);
   }
+
+  /**
+   * Procedural crunch/thud impact sound for trolley collisions
+   */
+  public playImpact(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Low heavy thud
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.26);
+
+    // High crunchy snap
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+
+    snapOsc.type = 'square';
+    snapOsc.frequency.setValueAtTime(300, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(50, now + 0.08);
+
+    snapGain.gain.setValueAtTime(0.18, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    snapOsc.connect(snapGain);
+    snapGain.connect(ctx.destination);
+
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.085);
+  }
 }
 
 export const sound = new SoundEngine();

@@ -155,12 +155,17 @@ export class SessionManager {
   }
 
   public restoreSession(session: EngineSession): void {
-    const phase = session.committed !== null ? 'result' : 'paused';
+    const phase = session.committed !== null ? 'result' : 'running';
     this.lastRealNow = this.clock.now();
     this.virtualNow = this.lastRealNow;
     this.dispatch({
       type: 'RESTORE_SESSION',
-      session,
+      session: {
+        ...session,
+        anchorMs: phase === 'running' ? this.virtualNow : null,
+        phaseBeforePause: null,
+        pauseReason: null
+      },
       phase
     });
   }
