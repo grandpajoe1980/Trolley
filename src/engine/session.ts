@@ -119,6 +119,11 @@ export class SessionManager {
     this.dispatch({ type: 'SELECT_CHOICE', choiceId, nowMs: now });
   }
 
+  public extendDeadline(amountMs = 8000): void {
+    this.syncVirtualTime();
+    this.dispatch({ type: 'EXTEND_DEADLINE', amountMs });
+  }
+
   public resolveNow(): void {
     const now = this.syncVirtualTime();
     this.dispatch({ type: 'RESOLVE_NOW', nowMs: now });

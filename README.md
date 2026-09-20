@@ -25,6 +25,7 @@ The tools require only Python 3's standard library. `data/authoring.txt` is the 
 - Raw deaths count each human/insect as one. Separate playful weighted impact uses human 1.0, cockroach 0.1, butterfly 0.2. Neither tally defines morality.
 - Morality is the equal average of applicable authored lens ratings, then the equal average of first-completion level scores. No passing score; every outcome unlocks the next level. First completion counts; practice does not change totals; New campaign resets.
 - Fixed stories include explicitly uncertain information. They do not sample new random outcomes on replay. Rates and reflections judge the evidence available at the decision, while counts record the authored realized result.
+- Scenario profiles add evidence review, precision timing, ordered operations, and limited-equipment decisions without adding a social/reputation system or changing authored outcomes.
 - Non-graphic cartoon treatment. Humor targets absurd circumstances and institutions. Scores express a game interpretation, not an objective judgment of character.
 
 ## Package map
@@ -42,6 +43,7 @@ The tools require only Python 3's standard library. `data/authoring.txt` is the 
 | tools/validate_catalog.py | Content/schema/arithmetic audit |
 | VALIDATION.md / VALIDATION.json | Generated validation results and scope limits |
 | STATUS.md | Current implementation, automated-test, and browser-verification status |
+| src/gameplay/profile.ts | Public-copy-only scenario mechanics and pacing profiles |
 | playwright.config.ts / tests/e2e/ | Chromium browser test configuration and smoke coverage |
 | HANDOFF_CHECKLIST.md | Implementation gates and editorial assumptions |
 

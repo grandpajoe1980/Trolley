@@ -2,6 +2,7 @@ import { catalog, getOutcome } from '../content/catalog';
 import type { ChoiceId } from '../content/types';
 import type {
   CompletionRecord,
+  CampaignState,
   SaveCheckpoint,
   SaveV1,
   SettingsV1,
@@ -11,6 +12,31 @@ import type {
 export const SAVE_KEY = 'trolley.save.v1';
 export const SETTINGS_KEY = 'trolley.settings.v1';
 export const QUARANTINE_KEY = 'trolley.save.quarantine';
+
+export function createInitialCampaignState(): CampaignState {
+  return {
+    fieldKitCharges: 3,
+    evidenceReviewed: 0,
+    precisionHits: 0,
+    sequencesCompleted: 0,
+    chapterBreaks: 0
+  };
+}
+
+function boundedInteger(value: unknown, fallback: number, min = 0, max = Number.MAX_SAFE_INTEGER): number {
+  return typeof value === 'number' && Number.isInteger(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+export function normalizeCampaignState(value: unknown): CampaignState {
+  const state = value && typeof value === 'object' ? (value as Partial<CampaignState>) : {};
+  return {
+    fieldKitCharges: boundedInteger(state.fieldKitCharges, 3, 0, 3),
+    evidenceReviewed: boundedInteger(state.evidenceReviewed, 0),
+    precisionHits: boundedInteger(state.precisionHits, 0),
+    sequencesCompleted: boundedInteger(state.sequencesCompleted, 0),
+    chapterBreaks: boundedInteger(state.chapterBreaks, 0)
+  };
+}
 
 export function generateUUID(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -62,7 +88,8 @@ export function createInitialSave(campaignId = generateUUID()): SaveV1 {
     revision: 0,
     updatedAt: new Date().toISOString(),
     completions: [],
-    checkpoint: null
+    checkpoint: null,
+    campaignState: createInitialCampaignState()
   };
 }
 
@@ -149,7 +176,7 @@ export function validateSaveData(data: unknown): { valid: boolean; error?: strin
     }
   }
 
-  return { valid: true, save: data as SaveV1 };
+  return { valid: true, save: { ...data, campaignState: normalizeCampaignState(s.campaignState) } as SaveV1 };
 }
 
 export class SaveManager {
@@ -204,6 +231,18 @@ export class SaveManager {
       // Storage unavailable; continues in memory
     }
     return this.currentSettings;
+  }
+
+  public updateCampaignState(updates: Partial<CampaignState>): CampaignState {
+    const campaignState = normalizeCampaignState({ ...this.currentSave.campaignState, ...updates });
+    const nextSave: SaveV1 = {
+      ...this.currentSave,
+      revision: this.currentSave.revision + 1,
+      updatedAt: new Date().toISOString(),
+      campaignState
+    };
+    this.persistSave(nextSave);
+    return campaignState;
   }
 
   public loadSave(): { save: SaveV1 | null; isCorrupt: boolean; rawText: string | null; error?: string } {

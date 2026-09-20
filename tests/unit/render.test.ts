@@ -159,6 +159,7 @@ describe('Render and UI Layout Templates', () => {
     expect(panel.textContent).toContain(outcome1A.reflection.strongestReason);
     expect(panel.textContent).toContain(outcome1A.reflection.ethicalTension);
     expect(panel.textContent).toContain('Fatalities');
+    expect(panel.textContent).toContain('After-action report');
     expect(panel.textContent).not.toContain('Humans:');
     expect(panel.textContent).not.toContain('Combined biological deaths');
     expect(panel.firstElementChild?.className).toBe('result-header');

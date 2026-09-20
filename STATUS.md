@@ -7,10 +7,18 @@ Updated 2026-09-20 from the `main` checkout.
 | Check | Result | Scope |
 |---|---|---|
 | `npm run typecheck` | PASS | Strict TypeScript, including Playwright tests |
-| `npm test` | PASS | 8 Vitest files, 58 tests |
+| `npm test` | PASS | 9 Vitest files, 64 tests |
 | `py -3 tools/validate_catalog.py` | PASS | 88,744 catalog/schema/arithmetic assertions; 200 levels, 423 outcomes |
 | `npx vite build` | PASS | Vite production bundle after the separate typecheck/content-validation gates |
-| `npm run test:e2e` | PASS | 10 Playwright tests in Chromium, 14.0 seconds |
+| `npm run test:e2e` | PASS | 14 Playwright tests in Chromium, 19.3 seconds |
+
+## Phase 8 gameplay-variety checkpoint
+
+PASS — the social/reputation idea was intentionally excluded. The game now assigns public-copy-only scenario profiles for route decisions, evidence review, precision timing, ordered multi-step operations, and limited equipment. Evidence levels hide route projections until the player reviews public clues; precision levels add a timing-window challenge; sequence levels require an ordered confirmation; resource levels can spend a persistent field-kit charge to add eight seconds without changing the authored outcome.
+
+Campaign state persists field-kit charges, evidence completions, precision bonuses, sequence completions, and chapter breaks. Charges refill by one at each chapter boundary up to three. Practice mode receives an ephemeral field-kit action and does not mutate campaign totals or mastery state. Result screens now include an after-action report and chapter debrief messaging, and the final summary exposes the operational mastery ledger, while authored outcomes and the existing non-graphic resolution remain authoritative.
+
+The focused gameplay tests cover profile assignment, evidence gating, sequence gating, resource use, deadline extension, save normalization, and browser flows for all four new mechanics. The visual pass inspected the evidence-review panel at 1280×800 and 320×844; the narrow viewport measured 305px client width and 305px scroll width with no horizontal overflow. No error overlay or page errors appeared; only normal Vite connection/debug messages were present.
 
 ## Phase 7 situation-specific scene checkpoint
 

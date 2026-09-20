@@ -81,6 +81,19 @@ export function createSummaryScreen(saveManager: SaveManager, callbacks: Summary
 
   card.appendChild(metricsGrid);
 
+  const masteryCard = document.createElement('section');
+  masteryCard.className = 'card aftermath-card';
+  const masteryHeading = document.createElement('h2');
+  masteryHeading.className = 'section-title';
+  masteryHeading.textContent = 'Operational Mastery';
+  masteryCard.appendChild(masteryHeading);
+  const masteryText = document.createElement('p');
+  masteryText.className = 'aftermath-text';
+  masteryText.textContent =
+    `${save.campaignState.evidenceReviewed} evidence reviews · ${save.campaignState.precisionHits} precision bonuses · ${save.campaignState.sequencesCompleted} sequences completed · ${save.campaignState.fieldKitCharges} field-kit charges remaining.`;
+  masteryCard.appendChild(masteryText);
+  card.appendChild(masteryCard);
+
   // Lens Breakdown
   const lensSection = document.createElement('section');
   lensSection.style.marginTop = '2rem';

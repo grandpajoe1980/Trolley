@@ -110,6 +110,55 @@ for (const fixture of [
   });
 }
 
+test('adds an evidence review phase before route projections on uncertainty levels', async ({ page }) => {
+  await openPracticeLevel(page, 101);
+
+  const controls = page.locator('.controls-panel[data-scenario-mode="investigation"]');
+  await expect(controls).toBeVisible();
+  await expect(controls.locator('.choice-preview').first()).toBeHidden();
+  const inspect = controls.getByRole('button', { name: /Inspect evidence/ });
+  await inspect.click();
+  await inspect.click();
+  await inspect.click();
+  await expect(inspect).toBeDisabled();
+  await expect(controls.locator('.choice-preview').first()).toBeVisible();
+});
+
+test('offers a precision timing challenge on intervention levels', async ({ page }) => {
+  await openPracticeLevel(page, 8);
+
+  const controls = page.locator('.controls-panel[data-scenario-mode="precision"]');
+  await expect(controls.locator('.precision-meter')).toBeVisible();
+  const timingButton = controls.getByRole('button', { name: 'Test timing' });
+  await timingButton.click();
+  await expect(timingButton).toBeDisabled();
+  await expect(controls.locator('.mechanic-status')).toContainText(/timing|window/i);
+});
+
+test('requires a sequence confirmation before early commitment', async ({ page }) => {
+  await openPracticeLevel(page, 19);
+
+  const controls = page.locator('.controls-panel[data-scenario-mode="sequence"]');
+  const choice = controls.getByRole('button', { name: /^A / });
+  await choice.click();
+  await choice.click();
+  await expect(controls.locator('.mechanic-status')).toContainText('Confirm the sequence');
+  await expect(page.locator('.result-panel')).toHaveCount(0);
+  await controls.getByRole('button', { name: 'Confirm sequence' }).click();
+  await choice.click();
+  await expect(page.locator('.result-panel')).toBeVisible({ timeout: 5_000 });
+});
+
+test('persists a field-kit action that extends the decision window', async ({ page }) => {
+  await openPracticeLevel(page, 31);
+
+  const controls = page.locator('.controls-panel[data-scenario-mode="resource"]');
+  const kitButton = controls.locator('.mechanic-action');
+  await kitButton.click();
+  await expect(kitButton).toBeDisabled();
+  await expect(controls.locator('.mechanic-status')).toContainText('Time extended');
+});
+
 for (const levelId of [102, 115, 184, 195]) {
   test(`keeps level ${levelId} outcome-only information out of the pre-commit DOM`, async ({ page }) => {
     await openPracticeLevel(page, levelId);

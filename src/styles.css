@@ -129,7 +129,7 @@ body {
 
 .level-statusbar {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(90px, 1fr));
+  grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(90px, 1fr));
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
   background: linear-gradient(135deg, #0f172a, #1e293b);
@@ -393,6 +393,119 @@ body {
   color: var(--text-muted);
   font-size: 0.88rem;
   line-height: 1.4;
+}
+
+.mechanic-panel {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #64748b;
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+}
+
+.mechanic-investigation {
+  border-left-color: #7c3aed;
+  background: #faf5ff;
+}
+
+.mechanic-precision {
+  border-left-color: #0891b2;
+  background: #ecfeff;
+}
+
+.mechanic-sequence {
+  border-left-color: #d97706;
+  background: #fffbeb;
+}
+
+.mechanic-resource {
+  border-left-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.mechanic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mechanic-badge {
+  color: var(--text-main);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mechanic-instruction,
+.mechanic-status {
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.mechanic-action {
+  margin-top: 0.55rem;
+  min-height: 40px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.84rem;
+}
+
+.evidence-list,
+.sequence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.65rem 0 0;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.evidence-list li,
+.sequence-list li {
+  padding: 0.3rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.evidence-list li.reviewed,
+.sequence-list li.complete {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.precision-meter {
+  position: relative;
+  height: 16px;
+  margin-top: 0.65rem;
+  overflow: hidden;
+  border: 1px solid #67e8f9;
+  border-radius: 999px;
+  background: #cffafe;
+}
+
+.precision-target {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 42%;
+  width: 16%;
+  background: #0891b2;
+  opacity: 0.8;
+}
+
+.precision-marker {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 0;
+  width: 5px;
+  border-radius: 999px;
+  background: #0f172a;
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
 .timer-wrapper {
@@ -741,6 +854,24 @@ body {
   border-radius: var(--radius-md);
 }
 
+.aftermath-card {
+  border-left: 4px solid #0891b2;
+  background: #ecfeff;
+}
+
+.aftermath-text,
+.challenge-result,
+.readiness-line {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.challenge-result {
+  color: #0e7490;
+  font-weight: 700;
+}
+
 /* Campaign Summary Screen */
 .summary-container {
   max-width: 900px;
@@ -773,7 +904,7 @@ body {
   }
 
   .level-statusbar {
-    grid-template-columns: 1.25fr repeat(3, minmax(0, 0.8fr));
+    grid-template-columns: 1.25fr repeat(4, minmax(0, 0.8fr));
     gap: 0.3rem;
     padding: 0.45rem 0.55rem;
     font-size: 0.72rem;

@@ -55,6 +55,24 @@ describe('Engine State Transitions and Clock Invariants', () => {
     expect(session.getState().session?.committed?.choiceId).toBe('C');
   });
 
+  it('extends a live decision window when a field kit is used', () => {
+    const lvl = getLevel(1)!;
+    const clock = new TestClock(0);
+    const session = new SessionManager(clock);
+    session.startLevel(lvl, 'campaign', 'standard', 'sess-kit', 'camp-kit');
+
+    clock.advance(10000);
+    session.tick();
+    session.extendDeadline(8000);
+
+    expect(session.getState().session?.activeElapsedMs).toBe(10000);
+    expect(session.getState().session?.deadlineMs).toBe(38000);
+
+    clock.advance(20000);
+    session.tick();
+    expect(session.getState().session?.committed).toBeNull();
+  });
+
   it('no-input defaults: running all 200 levels to deadline with no input commits default A', () => {
     for (const lvl of catalog.levels) {
       const clock = new TestClock(0);

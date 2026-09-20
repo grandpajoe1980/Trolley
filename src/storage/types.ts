@@ -10,6 +10,14 @@ export interface CompletionRecord {
   committedAt: string;
 }
 
+export interface CampaignState {
+  fieldKitCharges: number;
+  evidenceReviewed: number;
+  precisionHits: number;
+  sequencesCompleted: number;
+  chapterBreaks: number;
+}
+
 export interface SaveCheckpoint {
   levelId: number;
   mode: 'campaign' | 'practice';
@@ -30,6 +38,7 @@ export interface SaveV1 {
   updatedAt: string;
   completions: CompletionRecord[];
   checkpoint: SaveCheckpoint | null;
+  campaignState: CampaignState;
 }
 
 export interface SettingsV1 {

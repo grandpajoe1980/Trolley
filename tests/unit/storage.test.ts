@@ -17,6 +17,7 @@ describe('Storage, Persistence, and Recovery Contract', () => {
     expect(result.save?.catalogVersion).toBe('1.0.0');
     expect(result.save?.completions).toEqual([]);
     expect(result.save?.checkpoint).toBeNull();
+    expect(result.save?.campaignState.fieldKitCharges).toBe(3);
   });
 
   it('records first completion and ensures idempotency on replay', () => {
@@ -117,6 +118,18 @@ describe('Storage, Persistence, and Recovery Contract', () => {
     // Recording completion clears checkpoint
     mgr.recordCompletion(1, 'B', 'L001-B', 'sess-cp');
     expect(mgr.getSave().checkpoint).toBeNull();
+  });
+
+  it('persists campaign readiness state and normalizes legacy saves', () => {
+    const adapter = new MemoryStorageAdapter();
+    const mgr = new SaveManager(adapter);
+    const updated = mgr.updateCampaignState({ fieldKitCharges: 1, precisionHits: 4 });
+    expect(updated).toMatchObject({ fieldKitCharges: 1, precisionHits: 4 });
+    expect(new SaveManager(adapter).getSave().campaignState).toMatchObject({ fieldKitCharges: 1, precisionHits: 4 });
+
+    const legacy = createInitialSave('legacy');
+    delete (legacy as Partial<typeof legacy>).campaignState;
+    expect(validateSaveData(legacy).save?.campaignState.fieldKitCharges).toBe(3);
   });
 
   it('accepts practice checkpoints for future library levels', () => {

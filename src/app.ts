@@ -4,7 +4,8 @@ import { TabCoordinator } from './storage/locks';
 import { SessionManager } from './engine/session';
 import { createScene, type SceneComponent } from './render/scene';
 import { createFactsPanel } from './ui/facts';
-import { createControls, type ControlsComponent } from './ui/controls';
+import { createControls, type ChallengeResult, type ControlsComponent } from './ui/controls';
+import type { ScenarioMode } from './gameplay/profile';
 import { createResultPanel } from './ui/result';
 import { createMenuScreen } from './ui/menu';
 import { createLibraryScreen } from './ui/library';
@@ -348,6 +349,7 @@ export class App {
     addStatusItem('Fatalities', 'fatalities');
     addStatusItem('Impact', 'impact');
     addStatusItem('Morality', 'morality');
+    addStatusItem('Readiness', 'readiness');
     const updateStatusBar = () => {
       const save = this.saveManager.getSave();
       const outcomes = save.completions
@@ -358,6 +360,7 @@ export class App {
       statusValues.get('fatalities')!.textContent = String(metrics.rawDeaths);
       statusValues.get('impact')!.textContent = (metrics.weightedImpactTenths / 10).toFixed(1);
       statusValues.get('morality')!.textContent = metrics.campaignScore === null ? 'Not yet rated' : metrics.displayScore;
+      statusValues.get('readiness')!.textContent = `${save.campaignState.fieldKitCharges} kits · ${save.campaignState.precisionHits} precise`;
     };
     updateStatusBar();
 
@@ -379,7 +382,33 @@ export class App {
       onSelectChoice: (id) => this.currentSession?.selectChoice(id),
       onResolveNow: () => this.currentSession?.resolveNow(),
       onPause: () => this.currentSession?.pause('user'),
-      onResume: () => this.currentSession?.resume()
+      onResume: () => this.currentSession?.resume(),
+      resourceCharges: mode === 'campaign' ? this.saveManager.getSave().campaignState.fieldKitCharges : Math.max(1, this.saveManager.getSave().campaignState.fieldKitCharges),
+      onUseResource: () => {
+        const currentCharges = this.saveManager.getSave().campaignState.fieldKitCharges;
+        if (currentCharges <= 0 && mode === 'campaign') return false;
+        if (mode === 'campaign') {
+          this.saveManager.updateCampaignState({ fieldKitCharges: currentCharges - 1 });
+          this.tabCoordinator.updateRevision(this.saveManager.getSave().revision);
+        }
+        this.currentSession?.extendDeadline(8000);
+        updateStatusBar();
+        return true;
+      },
+      onChallengeResult: (mode, result) => {
+        challengeResult = { mode, result };
+        if (this.currentMode !== 'campaign') return;
+        const state = this.saveManager.getSave().campaignState;
+        if (mode === 'investigation' && result === 'complete') {
+          this.saveManager.updateCampaignState({ evidenceReviewed: state.evidenceReviewed + 1 });
+        } else if (mode === 'precision' && result === 'perfect') {
+          this.saveManager.updateCampaignState({ precisionHits: state.precisionHits + 1 });
+        } else if (mode === 'sequence' && result === 'complete') {
+          this.saveManager.updateCampaignState({ sequencesCompleted: state.sequencesCompleted + 1 });
+        }
+        this.tabCoordinator.updateRevision(this.saveManager.getSave().revision);
+        updateStatusBar();
+      }
     });
     playArea.appendChild(this.currentControls.element);
     levelContainer.appendChild(playArea);
@@ -415,6 +444,7 @@ export class App {
     const sessionId = generateUUID();
     const campaignId = this.saveManager.getSave().campaignId;
     let completionRecorded = this.saveManager.getSave().completions.some((c) => c.levelId === levelId);
+    let challengeResult: { mode: ScenarioMode; result: ChallengeResult } | null = null;
 
     this.currentSession = new SessionManager();
 
@@ -440,6 +470,13 @@ export class App {
             state.session.committed.outcomeId,
             state.session.sessionId
           );
+          if (levelId % 20 === 0) {
+            const campaignState = this.saveManager.getSave().campaignState;
+            this.saveManager.updateCampaignState({
+              chapterBreaks: campaignState.chapterBreaks + 1,
+              fieldKitCharges: Math.min(3, campaignState.fieldKitCharges + 1)
+            });
+          }
           this.tabCoordinator.updateRevision(this.saveManager.getSave().revision);
         }
         updateStatusBar();
@@ -448,7 +485,8 @@ export class App {
       // Handle transition to Result phase
       if (state.phase === 'result' && !this.currentResultEl) {
         sound.playLevelComplete();
-        this.currentControls?.element.remove();
+        this.currentControls?.destroy();
+        this.currentControls = null;
         this.currentResultEl = createResultPanel(
           rawLevel,
           state.session.selectedChoiceId,
@@ -467,7 +505,9 @@ export class App {
             onViewSummary: () => {
               window.location.hash = '#/summary';
               this.route();
-            }
+            },
+            challengeResult,
+            campaignState: this.saveManager.getSave().campaignState
           }
         );
         levelContainer.appendChild(this.currentResultEl);

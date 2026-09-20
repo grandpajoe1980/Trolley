@@ -46,6 +46,7 @@ export type EngineAction =
       nowMs: number;
     }
   | { type: 'SELECT_CHOICE'; choiceId: ChoiceId; nowMs: number }
+  | { type: 'EXTEND_DEADLINE'; amountMs: number }
   | { type: 'RESOLVE_NOW'; nowMs: number }
   | { type: 'PAUSE'; nowMs: number; reason?: 'user' | 'hidden' }
   | { type: 'RESUME'; nowMs: number }
@@ -172,6 +173,18 @@ export function engineReducer(state: EngineState, action: EngineAction): EngineS
       s.selectedChoiceId = action.choiceId;
       s.selectionOrigin = 'player';
       return { ...state, session: s };
+    }
+
+    case 'EXTEND_DEADLINE': {
+      if (!state.session || (state.phase !== 'running' && state.phase !== 'paused')) return state;
+      if (!Number.isFinite(state.session.deadlineMs) || action.amountMs <= 0) return state;
+      return {
+        ...state,
+        session: {
+          ...state.session,
+          deadlineMs: state.session.deadlineMs + action.amountMs
+        }
+      };
     }
 
     case 'RESOLVE_NOW': {

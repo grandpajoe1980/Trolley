@@ -1,10 +1,15 @@
 import type { ChoiceId, Level, Outcome } from '../content/types';
 import { formatDecimal1 } from '../engine/scoring';
+import type { CampaignState } from '../storage/types';
+import type { ChallengeResult } from './controls';
+import type { ScenarioMode } from '../gameplay/profile';
 
 export interface ResultCallbacks {
   onReplayPractice: () => void;
   onReturnToCampaign: () => void;
   onViewSummary: () => void;
+  challengeResult?: { mode: ScenarioMode; result: ChallengeResult } | null;
+  campaignState?: CampaignState;
 }
 
 export function createResultPanel(
@@ -123,6 +128,53 @@ export function createResultPanel(
 
   metricsCard.appendChild(metricsGrid);
   container.appendChild(metricsCard);
+
+  const aftermathCard = document.createElement('section');
+  aftermathCard.className = 'card aftermath-card';
+  const aftermathHeading = document.createElement('h3');
+  aftermathHeading.className = 'section-title';
+  aftermathHeading.textContent = level.id % 20 === 0 ? 'Chapter debrief' : 'After-action report';
+  aftermathCard.appendChild(aftermathHeading);
+
+  const aftermathText = document.createElement('p');
+  aftermathText.className = 'aftermath-text';
+  if (level.id % 20 === 0) {
+    aftermathText.textContent = `Chapter ${level.chapter} is complete. The next shift will introduce a new kind of decision pressure.`;
+  } else {
+    aftermathText.textContent = `The decision is logged. Level ${level.id + 1} will carry the campaign forward with a fresh operating problem.`;
+  }
+  aftermathCard.appendChild(aftermathText);
+
+  if (callbacks.challengeResult) {
+    const challengeLine = document.createElement('p');
+    challengeLine.className = 'challenge-result';
+    const modeLabel = callbacks.challengeResult.mode === 'investigation'
+      ? 'Evidence review'
+      : callbacks.challengeResult.mode === 'precision'
+        ? 'Precision window'
+        : callbacks.challengeResult.mode === 'sequence'
+          ? 'Multi-step operation'
+          : 'Field kit';
+    const resultLabel = callbacks.challengeResult.result === 'perfect'
+      ? 'Perfect timing'
+      : callbacks.challengeResult.result === 'complete'
+        ? 'Completed'
+        : callbacks.challengeResult.result === 'close'
+          ? 'Close timing'
+          : callbacks.challengeResult.result === 'missed'
+            ? 'Missed window'
+            : 'Skipped';
+    challengeLine.textContent = `${modeLabel}: ${resultLabel}.`;
+    aftermathCard.appendChild(challengeLine);
+  }
+
+  if (callbacks.campaignState) {
+    const readinessLine = document.createElement('p');
+    readinessLine.className = 'readiness-line';
+    readinessLine.textContent = `Campaign readiness: ${callbacks.campaignState.fieldKitCharges} field-kit charges · ${callbacks.campaignState.precisionHits} precision bonuses.`;
+    aftermathCard.appendChild(readinessLine);
+  }
+  container.appendChild(aftermathCard);
 
   // 4. Epilogue Timeline (for delayed human deaths)
   if (outcome.delayedHumanDeaths > 0) {
