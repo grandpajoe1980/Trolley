@@ -1,6 +1,6 @@
 # Trolley
 
-A complete design and implementation handoff for a visual browser game of philosophical dilemmas. **Exactly 200 levels, 423 fully specified choice outcomes, ten chapters.** This repository contains requirements and authored content; the game has not been implemented.
+A visual browser game of philosophical dilemmas with **exactly 200 levels, 423 fully specified choice outcomes, and ten chapters**. This repository contains the authored catalog, implementation, automated tests, and current verification status.
 
 ## Start here, Luna
 
@@ -8,7 +8,7 @@ A complete design and implementation handoff for a visual browser game of philos
 2. Read [TECHNICAL_HANDOFF.md](TECHNICAL_HANDOFF.md) for stack, component boundaries, schema, clock/state transitions, SVG templates, persistence, accessibility, phases, and tests.
 3. Read [RESEARCH.md](RESEARCH.md) for sources, canonical versus original provenance, and limits of the scoring model.
 4. Use [data/levels.json](data/levels.json) as the complete machine-readable catalog and [data/levels.schema.json](data/levels.schema.json) as its structural contract. [LEVEL_CATALOG.md](LEVEL_CATALOG.md) is the full readable, spoiler-containing version.
-5. Run the two content commands below, then implement the six phases in the technical guide. Complete all 200 levels; do not substitute runtime-generated content or stop with a demo.
+5. Run the content commands below, then use [STATUS.md](STATUS.md) and the six phases in the technical guide to continue development. Complete all 200 levels; do not substitute runtime-generated content or stop with a demo.
 
 ```sh
 python3 tools/build_catalog.py
@@ -42,6 +42,7 @@ The tools require only Python 3's standard library. `data/authoring.txt` is the 
 | tools/validate_catalog.py | Content/schema/arithmetic audit |
 | VALIDATION.md / VALIDATION.json | Generated validation results and scope limits |
 | STATUS.md | Current implementation, automated-test, and browser-verification status |
+| playwright.config.ts / tests/e2e/ | Chromium browser test configuration and smoke coverage |
 | HANDOFF_CHECKLIST.md | Implementation gates and editorial assumptions |
 
 Sources are linked near their use. Four recognizable thought-experiment structures are marked canonical adaptations; 196 scenarios are original, sometimes constructed as deliberate contrasts. No popularity ranking or philosophical consensus is claimed. No source art is bundled.

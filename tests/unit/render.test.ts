@@ -132,6 +132,8 @@ describe('Render and UI Layout Templates', () => {
 
     const btnB = controls.element.querySelector('.choice-btn-B') as HTMLButtonElement;
     expect(btnB).toBeDefined();
+    expect(controls.element.querySelector('.decision-intro')?.textContent).toContain('Choose a route');
+    expect(controls.element.querySelector('.timer-heading')?.textContent).toBe('Decision window');
     btnB.click();
     expect(selectedId).toBe('B');
 

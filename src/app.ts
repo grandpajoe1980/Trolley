@@ -117,22 +117,35 @@ export class App {
     nav.className = 'site-nav';
 
     const nextLvl = this.saveManager.getNextUnlockedLevel();
+    const currentHash = window.location.hash.trim();
     const campLink = document.createElement('a');
     campLink.href = `#/level/${nextLvl}`;
     campLink.className = 'nav-link';
     campLink.textContent = 'Campaign';
+    if (currentHash === '#/campaign' || currentHash === '#/summary' || currentHash.startsWith('#/level/')) {
+      campLink.classList.add('active');
+      campLink.setAttribute('aria-current', 'page');
+    }
     nav.appendChild(campLink);
 
     const libLink = document.createElement('a');
     libLink.href = '#/library';
     libLink.className = 'nav-link';
     libLink.textContent = 'Library';
+    if (currentHash === '#/library') {
+      libLink.classList.add('active');
+      libLink.setAttribute('aria-current', 'page');
+    }
     nav.appendChild(libLink);
 
     const setLink = document.createElement('a');
     setLink.href = '#/settings';
     setLink.className = 'nav-link';
     setLink.textContent = 'Settings';
+    if (currentHash === '#/settings') {
+      setLink.classList.add('active');
+      setLink.setAttribute('aria-current', 'page');
+    }
     nav.appendChild(setLink);
 
     header.appendChild(nav);

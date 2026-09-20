@@ -20,14 +20,40 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
   container.className = 'controls-panel';
   container.setAttribute('aria-label', 'Decision Controls and Timer');
 
+  const decisionIntro = document.createElement('div');
+  decisionIntro.className = 'decision-intro';
+
+  const introEyebrow = document.createElement('span');
+  introEyebrow.className = 'decision-eyebrow';
+  introEyebrow.textContent = 'Your turn';
+  decisionIntro.appendChild(introEyebrow);
+
+  const introHeading = document.createElement('h2');
+  introHeading.textContent = 'Choose a route';
+  decisionIntro.appendChild(introHeading);
+
+  const introText = document.createElement('p');
+  introText.textContent = 'Select a choice to preview it. Click the same choice again to commit early.';
+  decisionIntro.appendChild(introText);
+  container.appendChild(decisionIntro);
+
   // 1. Timer & status region
   const timerBarWrapper = document.createElement('div');
   timerBarWrapper.className = 'timer-wrapper';
+
+  const timerHeader = document.createElement('div');
+  timerHeader.className = 'timer-header';
+
+  const timerHeading = document.createElement('span');
+  timerHeading.className = 'timer-heading';
+  timerHeading.textContent = 'Decision window';
+  timerHeader.appendChild(timerHeading);
 
   const timerLabel = document.createElement('span');
   timerLabel.className = 'timer-label';
   timerLabel.id = 'timer-label-text';
   timerLabel.textContent = '30s remaining';
+  timerHeader.appendChild(timerLabel);
 
   const progressBar = document.createElement('progress');
   progressBar.className = 'timer-progress';
@@ -35,7 +61,7 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
   progressBar.setAttribute('value', '100');
   progressBar.setAttribute('aria-labelledby', 'timer-label-text');
 
-  timerBarWrapper.appendChild(timerLabel);
+  timerBarWrapper.appendChild(timerHeader);
   timerBarWrapper.appendChild(progressBar);
   container.appendChild(timerBarWrapper);
 
@@ -86,7 +112,7 @@ export function createControls(level: PlayerLevel, callbacks: ControlsCallbacks)
     // Armed status indicator
     const armedStatus = document.createElement('span');
     armedStatus.className = 'choice-status';
-    armedStatus.textContent = 'Selected; click again to resolve';
+    armedStatus.textContent = 'Selected · click again to commit';
     btn.appendChild(armedStatus);
 
     btn.addEventListener('click', () => {

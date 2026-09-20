@@ -36,6 +36,8 @@ test.beforeEach(async ({ page }) => {
 test('loads the campaign shell and completes a choice with persistent progress', async ({ page }) => {
   await startCampaign(page);
 
+  await expect(page.getByRole('heading', { name: 'Choose a route' })).toBeVisible();
+  await expect(page.getByText('Click the same choice again to commit early.')).toBeVisible();
   const sidingChoice = page.getByRole('button', { name: /Use empty siding/ });
   await sidingChoice.click();
   await expect(sidingChoice).toHaveAttribute('aria-pressed', 'true');
@@ -76,6 +78,19 @@ test('persists the extended timing accessibility setting into a new level', asyn
   await page.getByRole('button', { name: 'Main Menu' }).click();
   await page.getByRole('button', { name: 'Start Campaign' }).click();
   await expect(page.locator('.timer-label')).toContainText('120s remaining');
+});
+
+test('keeps the decision panel usable at a narrow mobile width', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await startCampaign(page);
+
+  await expect(page.getByRole('heading', { name: 'Choose a route' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  const dimensions = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 });
 
 for (const levelId of [102, 115, 184, 195]) {
