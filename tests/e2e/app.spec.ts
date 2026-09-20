@@ -18,7 +18,9 @@ async function startCampaign(page: import('@playwright/test').Page): Promise<voi
 async function openPracticeLevel(page: import('@playwright/test').Page, levelId: number): Promise<void> {
   await page.goto('/#/');
   await page.getByRole('button', { name: 'Level Library & Practice' }).click();
-  const levelCard = page.locator('.library-level-item').filter({ hasText: `${levelId}.` });
+  const levelCard = page.locator('.library-level-item').filter({
+    has: page.locator('strong', { hasText: new RegExp(`^${levelId}\\. `) })
+  });
   await expect(levelCard).toContainText('Available in Practice Mode');
   await levelCard.locator('xpath=ancestor::details[1]').evaluate((details) => {
     (details as HTMLDetailsElement).open = true;
@@ -92,6 +94,21 @@ test('keeps the decision panel usable at a narrow mobile width', async ({ page }
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 });
+
+for (const fixture of [
+  { levelId: 45, family: 'hospital', marker: '.scene-hospital-backdrop', label: 'SURGERY WARD' },
+  { levelId: 32, family: 'footbridge', marker: '.scene-footbridge-backdrop', label: 'FOOTBRIDGE' }
+]) {
+  test(`renders the ${fixture.family} environment for level ${fixture.levelId}`, async ({ page }) => {
+    await openPracticeLevel(page, fixture.levelId);
+
+    const scene = page.locator('svg.trolley-stage');
+    await expect(scene).toHaveAttribute('data-scene-family', fixture.family);
+    await expect(scene.locator(fixture.marker)).toHaveCount(1);
+    await expect(scene).toContainText(fixture.label);
+    await expect(scene.locator('.scene-catenary')).toHaveCount(0);
+  });
+}
 
 for (const levelId of [102, 115, 184, 195]) {
   test(`keeps level ${levelId} outcome-only information out of the pre-commit DOM`, async ({ page }) => {

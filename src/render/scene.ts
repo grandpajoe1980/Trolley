@@ -168,6 +168,191 @@ function sceneThemeFromLevel(level: PlayerLevel): string {
   return level.layout.actionTarget === 'rail-switch' ? 'rail-switch' : 'default';
 }
 
+type SceneFamily = 'railway' | 'hospital' | 'footbridge' | 'bureaucratic';
+
+function sceneFamilyFromLevel(level: PlayerLevel): SceneFamily {
+  if (level.layout.template === 'footbridge') return 'footbridge';
+
+  const text = `${level.title} ${level.premise} ${level.choices
+    .map((choice) => `${choice.label} ${choice.preview}`)
+    .join(' ')}`.toLowerCase();
+  if (/hospital|surgeon|surgery|operating|patient|organ|medical|illness|medicine|vaccine|oxygen|clinic|doctor/.test(text)) {
+    return 'hospital';
+  }
+  if (level.layout.theme === 'bureaucratic-comedy') return 'bureaucratic';
+  return 'railway';
+}
+
+function createRailwayBackdrop(): SVGGElement {
+  const group = createSvgElement('g', { class: 'scene-railway-backdrop' });
+  const background = createSvgElement('rect', {
+    x: 0,
+    y: 0,
+    width: STAGE_WIDTH,
+    height: STAGE_HEIGHT,
+    fill: 'url(#scene-sky-grad)',
+    rx: 8
+  });
+  const hills = createSvgElement('path', {
+    d: 'M 0,260 Q 200,200 450,230 T 800,190 Q 920,210 1000,240 L 1000,320 L 0,320 Z',
+    fill: 'url(#scene-hill-grad)'
+  });
+  group.append(background, hills);
+  return group;
+}
+
+function createHospitalBackdrop(): SVGGElement {
+  const group = createSvgElement('g', { class: 'scene-hospital-backdrop' });
+  const wall = createSvgElement('rect', {
+    x: 0,
+    y: 0,
+    width: STAGE_WIDTH,
+    height: STAGE_HEIGHT,
+    fill: '#eff6ff',
+    rx: 8
+  });
+  const ceiling = createSvgElement('rect', { x: 0, y: 0, width: STAGE_WIDTH, height: 44, fill: '#dbeafe' });
+  const ceilingLine = createSvgElement('line', {
+    x1: 0,
+    y1: 44,
+    x2: STAGE_WIDTH,
+    y2: 44,
+    stroke: '#bfdbfe',
+    'stroke-width': 2
+  });
+  const window = createSvgElement('rect', {
+    x: 52,
+    y: 74,
+    width: 260,
+    height: 146,
+    rx: 10,
+    fill: '#bae6fd',
+    stroke: '#7dd3fc',
+    'stroke-width': 4
+  });
+  const windowFrameV = createSvgElement('line', { x1: 182, y1: 74, x2: 182, y2: 220, stroke: '#e0f2fe', 'stroke-width': 5 });
+  const windowFrameH = createSvgElement('line', { x1: 52, y1: 147, x2: 312, y2: 147, stroke: '#e0f2fe', 'stroke-width': 5 });
+  const skyline = createSvgElement('path', {
+    d: 'M 55,190 L 92,162 L 116,180 L 145,140 L 174,174 L 204,150 L 242,182 L 271,158 L 309,184 L 309,220 L 55,220 Z',
+    fill: '#7dd3fc',
+    opacity: '0.72'
+  });
+  const floor = createSvgElement('rect', { x: 0, y: 280, width: STAGE_WIDTH, height: 320, fill: '#f8fafc' });
+  const floorLine = createSvgElement('path', {
+    d: 'M 0,280 L 1000,280 M 0,350 L 1000,350 M 0,420 L 1000,420',
+    stroke: '#dbeafe',
+    'stroke-width': 2,
+    'stroke-dasharray': '18,12'
+  });
+
+  const sign = createSvgElement('g', { transform: 'translate(752, 78)', class: 'hospital-sign' });
+  const signBoard = createSvgElement('rect', {
+    x: 0,
+    y: 0,
+    width: 178,
+    height: 72,
+    rx: 10,
+    fill: '#ffffff',
+    stroke: '#93c5fd',
+    'stroke-width': 2
+  });
+  const crossV = createSvgElement('rect', { x: 18, y: 16, width: 18, height: 40, rx: 3, fill: '#ef4444' });
+  const crossH = createSvgElement('rect', { x: 7, y: 27, width: 40, height: 18, rx: 3, fill: '#ef4444' });
+  const signText = createSvgElement('text', {
+    x: 105,
+    y: 31,
+    'text-anchor': 'middle',
+    fill: '#1e3a8a',
+    'font-size': 13,
+    'font-weight': '800',
+    'font-family': 'system-ui, sans-serif'
+  });
+  signText.textContent = 'SURGERY WARD';
+  const signSubtext = createSvgElement('text', {
+    x: 105,
+    y: 51,
+    'text-anchor': 'middle',
+    fill: '#64748b',
+    'font-size': 9,
+    'font-weight': '700',
+    'font-family': 'system-ui, sans-serif'
+  });
+  signSubtext.textContent = 'PATIENT CARE';
+  sign.append(signBoard, crossV, crossH, signText, signSubtext);
+
+  const ceilingLight = (x: number): SVGRectElement =>
+    createSvgElement('rect', { x, y: 16, width: 90, height: 8, rx: 4, fill: '#ffffff', stroke: '#93c5fd', 'stroke-width': 1.5 });
+  group.append(wall, ceiling, ceilingLine, window, windowFrameV, windowFrameH, skyline, floor, floorLine, sign);
+  group.append(ceilingLight(390), ceilingLight(535), ceilingLight(680));
+  return group;
+}
+
+function createFootbridgeBackdrop(): SVGGElement {
+  const group = createSvgElement('g', { class: 'scene-footbridge-backdrop' });
+  const sky = createSvgElement('rect', {
+    x: 0,
+    y: 0,
+    width: STAGE_WIDTH,
+    height: STAGE_HEIGHT,
+    fill: '#bae6fd',
+    rx: 8
+  });
+  const sun = createSvgElement('circle', { cx: 865, cy: 76, r: 28, fill: '#fde68a', opacity: '0.95' });
+  const farBank = createSvgElement('path', {
+    d: 'M 0,248 Q 170,188 332,232 T 645,225 Q 830,170 1000,226 L 1000,390 L 0,390 Z',
+    fill: '#86efac',
+    opacity: '0.78'
+  });
+  const nearBank = createSvgElement('path', {
+    d: 'M 0,350 Q 180,322 360,360 T 720,345 Q 880,320 1000,350 L 1000,600 L 0,600 Z',
+    fill: '#4ade80',
+    opacity: '0.82'
+  });
+  const river = createSvgElement('path', {
+    d: 'M 0,404 Q 180,368 360,406 T 720,400 Q 870,372 1000,406 L 1000,600 L 0,600 Z',
+    fill: '#38bdf8',
+    opacity: '0.82'
+  });
+  const riverLines = createSvgElement('path', {
+    d: 'M 40,454 Q 180,430 310,456 T 590,450 T 940,454 M 80,510 Q 230,490 390,514 T 760,508 T 980,512',
+    fill: 'none',
+    stroke: '#e0f2fe',
+    'stroke-width': 3,
+    opacity: '0.72'
+  });
+  const sign = createSvgElement('g', { transform: 'translate(72, 84)', class: 'footbridge-sign' });
+  const signBoard = createSvgElement('rect', { x: 0, y: 0, width: 166, height: 48, rx: 8, fill: '#fefce8', stroke: '#a16207', 'stroke-width': 2 });
+  const signText = createSvgElement('text', {
+    x: 83,
+    y: 21,
+    'text-anchor': 'middle',
+    fill: '#854d0e',
+    'font-size': 12,
+    'font-weight': '800',
+    'font-family': 'system-ui, sans-serif'
+  });
+  signText.textContent = 'FOOTBRIDGE';
+  const signSubtext = createSvgElement('text', {
+    x: 83,
+    y: 37,
+    'text-anchor': 'middle',
+    fill: '#a16207',
+    'font-size': 8,
+    'font-weight': '700',
+    'font-family': 'system-ui, sans-serif'
+  });
+  signSubtext.textContent = 'KEEP TO THE WALKWAY';
+  sign.append(signBoard, signText, signSubtext);
+  group.append(sky, sun, farBank, nearBank, river, riverLines, sign);
+  return group;
+}
+
+function createSceneBackdrop(family: SceneFamily): SVGGElement {
+  if (family === 'hospital') return createHospitalBackdrop();
+  if (family === 'footbridge') return createFootbridgeBackdrop();
+  return createRailwayBackdrop();
+}
+
 function createChoiceTargetGlyph(targetInfo: ChoiceTargetInfo, choiceIndex: number): SVGGElement | null {
   if (targetInfo.type === 'bug') {
     return targetInfo.count > 1
@@ -262,9 +447,11 @@ export function parseChoiceTarget(level: PlayerLevel, choice: PlayerChoice, idx:
 }
 
 export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) => void): SceneComponent {
+  const sceneFamily = sceneFamilyFromLevel(level);
   const svg = createSvgElement('svg', {
     viewBox: `0 0 ${STAGE_WIDTH} ${STAGE_HEIGHT}`,
-    class: 'trolley-stage',
+    class: `trolley-stage scene-${sceneFamily}`,
+    'data-scene-family': sceneFamily,
     role: 'img',
     'aria-hidden': 'true'
   });
@@ -317,29 +504,15 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
 
   svg.appendChild(defs);
 
-  // 2. Scenic Environment Background
-  const bgRect = createSvgElement('rect', {
-    x: 0,
-    y: 0,
-    width: STAGE_WIDTH,
-    height: STAGE_HEIGHT,
-    fill: 'url(#scene-sky-grad)',
-    rx: 8
-  });
-  svg.appendChild(bgRect);
-
-  // Distant rolling hills
-  const hills = createSvgElement('path', {
-    d: 'M 0,260 Q 200,200 450,230 T 800,190 Q 920,210 1000,240 L 1000,320 L 0,320 Z',
-    fill: 'url(#scene-hill-grad)'
-  });
-  svg.appendChild(hills);
+  // 2. Situation-specific scenic environment. This only uses player-visible
+  // level copy and layout metadata; hidden outcomes never influence the scene.
+  svg.appendChild(createSceneBackdrop(sceneFamily));
 
   // A level-specific prop anchors the moral problem in the same world as the
   // tracks. It is built only from player-visible copy, so it cannot disclose
   // hidden outcomes before the player commits.
   const themeProp = createThemePropGlyph(sceneThemeFromLevel(level));
-  themeProp.setAttribute('transform', 'translate(150, 112)');
+  themeProp.setAttribute('transform', sceneFamily === 'hospital' ? 'translate(170, 134)' : 'translate(150, 112)');
   svg.appendChild(themeProp);
   const themeConnector = createSvgElement('path', {
     class: 'scene-theme-connector',
@@ -352,38 +525,41 @@ export function createScene(level: PlayerLevel, onSelectChoice?: (id: ChoiceId) 
   });
   svg.appendChild(themeConnector);
 
-  // Overhead catenary poles and wire
-  const wireGroup = createSvgElement('g', { class: 'scene-catenary' });
-  const overheadWire = createSvgElement('path', {
-    d: 'M 40,235 Q 240,245 430,235 Q 650,245 920,235',
-    fill: 'none',
-    stroke: '#71717a',
-    'stroke-width': 1.5,
-    'stroke-dasharray': '6,2'
-  });
-  wireGroup.appendChild(overheadWire);
+  // Open-air railway infrastructure belongs to the railway scenes. Hospital
+  // corridors and footbridges get their own visual vocabulary instead.
+  if (sceneFamily !== 'hospital' && sceneFamily !== 'footbridge') {
+    const wireGroup = createSvgElement('g', { class: 'scene-catenary' });
+    const overheadWire = createSvgElement('path', {
+      d: 'M 40,235 Q 240,245 430,235 Q 650,245 920,235',
+      fill: 'none',
+      stroke: '#71717a',
+      'stroke-width': 1.5,
+      'stroke-dasharray': '6,2'
+    });
+    wireGroup.appendChild(overheadWire);
 
-  for (const poleX of [60, 320, 580, 850]) {
-    const pole = createSvgElement('line', {
-      x1: poleX,
-      y1: 300,
-      x2: poleX,
-      y2: 215,
-      stroke: '#475569',
-      'stroke-width': 3.5
-    });
-    const arm = createSvgElement('line', {
-      x1: poleX - 10,
-      y1: 220,
-      x2: poleX + 25,
-      y2: 235,
-      stroke: '#475569',
-      'stroke-width': 2.5
-    });
-    wireGroup.appendChild(pole);
-    wireGroup.appendChild(arm);
+    for (const poleX of [60, 320, 580, 850]) {
+      const pole = createSvgElement('line', {
+        x1: poleX,
+        y1: 300,
+        x2: poleX,
+        y2: 215,
+        stroke: '#475569',
+        'stroke-width': 3.5
+      });
+      const arm = createSvgElement('line', {
+        x1: poleX - 10,
+        y1: 220,
+        x2: poleX + 25,
+        y2: 235,
+        stroke: '#475569',
+        'stroke-width': 2.5
+      });
+      wireGroup.appendChild(pole);
+      wireGroup.appendChild(arm);
+    }
+    svg.appendChild(wireGroup);
   }
-  svg.appendChild(wireGroup);
 
   // 3. Track definitions & Rails
   const trackDef = getTrackDefinition(level.layout.template);

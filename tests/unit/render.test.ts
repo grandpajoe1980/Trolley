@@ -179,6 +179,28 @@ describe('Render and UI Layout Templates', () => {
     }
   });
 
+  it('chooses a situation-specific environment from public level metadata', () => {
+    const railway = createScene(getPlayerLevel(1)!);
+    expect(railway.element.dataset.sceneFamily).toBe('railway');
+    expect(railway.element.querySelector('.scene-railway-backdrop')).not.toBeNull();
+    expect(railway.element.querySelector('.scene-catenary')).not.toBeNull();
+    railway.destroy();
+
+    const hospital = createScene(getPlayerLevel(45)!);
+    expect(hospital.element.dataset.sceneFamily).toBe('hospital');
+    expect(hospital.element.querySelector('.scene-hospital-backdrop')).not.toBeNull();
+    expect(hospital.element.querySelector('.hospital-sign')?.textContent).toContain('SURGERY WARD');
+    expect(hospital.element.querySelector('.scene-catenary')).toBeNull();
+    hospital.destroy();
+
+    const footbridge = createScene(getPlayerLevel(32)!);
+    expect(footbridge.element.dataset.sceneFamily).toBe('footbridge');
+    expect(footbridge.element.querySelector('.scene-footbridge-backdrop')).not.toBeNull();
+    expect(footbridge.element.querySelector('.footbridge-sign')?.textContent).toContain('FOOTBRIDGE');
+    expect(footbridge.element.querySelector('.scene-catenary')).toBeNull();
+    footbridge.destroy();
+  });
+
   it('correctly renders 5 people on track A and 1 person on track B for Level 4', () => {
     const pLvl4 = getPlayerLevel(4)!;
     expect(pLvl4).toBeDefined();
