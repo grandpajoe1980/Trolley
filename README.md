@@ -15,7 +15,7 @@ python3 tools/build_catalog.py
 python3 tools/validate_catalog.py
 ```
 
-The tools require only Python 3's standard library. `data/authoring.txt` is the compact editorial source; the builder produces JSON and Markdown. The validator audits every keyword used by the supplied schema plus cross-field consistency and independent critical fixtures. See [VALIDATION.md](VALIDATION.md) and [VALIDATION.json](VALIDATION.json) for actual results. These are content checks, not claims that the future browser app has been tested.
+The tools require only Python 3's standard library. `data/authoring.txt` is the compact editorial source; the builder produces JSON and Markdown. The validator audits every keyword used by the supplied schema plus cross-field consistency and independent critical fixtures. See [VALIDATION.md](VALIDATION.md) and [VALIDATION.json](VALIDATION.json) for content results, and [STATUS.md](STATUS.md) for current implementation and browser-test evidence.
 
 ## Key decisions
 
@@ -41,6 +41,7 @@ The tools require only Python 3's standard library. `data/authoring.txt` is the 
 | tools/build_catalog.py | Rebuild JSON and readable catalog |
 | tools/validate_catalog.py | Content/schema/arithmetic audit |
 | VALIDATION.md / VALIDATION.json | Generated validation results and scope limits |
+| STATUS.md | Current implementation, automated-test, and browser-verification status |
 | HANDOFF_CHECKLIST.md | Implementation gates and editorial assumptions |
 
 Sources are linked near their use. Four recognizable thought-experiment structures are marked canonical adaptations; 196 scenarios are original, sometimes constructed as deliberate contrasts. No popularity ranking or philosophical consensus is claimed. No source art is bundled.

@@ -13,9 +13,11 @@
     "typecheck": "tsc --noEmit",
     "validate:content": "python3 tools/validate_catalog.py",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",

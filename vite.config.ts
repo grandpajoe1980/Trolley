@@ -5,7 +5,8 @@ export default defineConfig({
   base: './',
   test: {
     environment: 'happy-dom',
-    globals: true
+    globals: true,
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**']
   },
   build: {
     target: 'es2022',

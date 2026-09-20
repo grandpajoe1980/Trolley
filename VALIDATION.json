@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "scope": "Handoff content/schema/arithmetic only; game/browser implementation not yet present",
+  "scope": "Catalog content/schema/arithmetic only; current implementation and browser results are tracked separately in STATUS.md",
   "checks": 88744,
   "levels": 200,
   "outcomes": 423,
@@ -37,7 +37,7 @@
     184,
     195
   ],
-  "catalogSha256": "038195cc2fffc4118184770c458a3dcd0bddabd440ff6f2e1b66e0c02bda9d9c",
+  "catalogSha256": "3f32abffc70b7c490b226f9caa235bae8965b08dca53121d0413a0b3dafc86ae",
   "openingFixture": {
     "rawDeaths": 2,
     "weightedImpactTenths": 3,
@@ -45,7 +45,7 @@
     "scoreDisplay": "83.3"
   },
   "limitations": [
-    "No game code or browser execution tested.",
+    "This report does not execute the game or browser tests; see STATUS.md for current implementation evidence.",
     "Scores are authored judgments, not empirically validated morality.",
     "Narrative/causal review is editorial; integer consistency alone cannot prove philosophy or prose correct."
   ]
